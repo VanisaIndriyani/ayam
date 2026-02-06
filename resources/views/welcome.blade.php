@@ -88,7 +88,7 @@
     </nav>
 
     {{-- ================= HERO ================= --}}
-    <section class="hero" id="home">
+    <section class="hero" id="home" style="background: url('{{ asset('images/bg.jpeg') }}') center/cover no-repeat;">
         <div class="hero-content container">
             <h1 class="display-4 fw-bold">Temukan Hasil Peternakan Terbaik</h1>
             <p class="lead mb-4">
