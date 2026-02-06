@@ -184,16 +184,17 @@
             
             // ROBUST BASE URL DETECTION
             let baseUrl = document.querySelector('meta[name="base-url"]')?.content;
-            if (!baseUrl) {
-                // Fallback: try to guess from current URL
-                // Check if we are in /public directory
-                const path = window.location.pathname;
-                const pos = path.indexOf('/public');
-                if (pos > -1) {
-                     baseUrl = path.substring(0, pos + 7); // include /public
-                } else {
-                     baseUrl = ''; // assume root
-                }
+
+            // FORCE CHECK: If current URL contains /public, ensure baseUrl includes it
+            const path = window.location.pathname;
+            const pos = path.indexOf('/public');
+
+            if (pos > -1) {
+                 // Found /public in URL. Construct base URL from window.location
+                 // This overrides the meta tag which might be wrong (pointing to domain root)
+                 baseUrl = window.location.origin + path.substring(0, pos + 7);
+            } else if (!baseUrl) {
+                 baseUrl = '';
             }
             // Ensure no trailing slash
             baseUrl = baseUrl ? baseUrl.replace(/\/$/, '') : '';
