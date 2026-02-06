@@ -181,7 +181,25 @@
 
          try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-            const baseUrl = document.querySelector('meta[name="base-url"]')?.content || '';
+            
+            // ROBUST BASE URL DETECTION
+            let baseUrl = document.querySelector('meta[name="base-url"]')?.content;
+            if (!baseUrl) {
+                // Fallback: try to guess from current URL
+                // Check if we are in /public directory
+                const path = window.location.pathname;
+                const pos = path.indexOf('/public');
+                if (pos > -1) {
+                     baseUrl = path.substring(0, pos + 7); // include /public
+                } else {
+                     baseUrl = ''; // assume root
+                }
+            }
+            // Ensure no trailing slash
+            baseUrl = baseUrl ? baseUrl.replace(/\/$/, '') : '';
+
+            console.log('Using Base URL:', baseUrl); // Debugging
+
             const res = await fetch(`${baseUrl}/cart/add/${productId}`, {
                 method: 'POST',
                 headers: {
