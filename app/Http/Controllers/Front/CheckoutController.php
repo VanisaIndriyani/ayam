@@ -199,6 +199,12 @@ class CheckoutController extends Controller
 
     public function process(Request $request)
     {
+        // Handle GET request (fallback for redirect issues)
+        if ($request->isMethod('get')) {
+            return redirect()->route('checkout.index')
+                ->with('error', 'Sesi kedaluwarsa atau permintaan tidak valid. Silakan coba lagi.');
+        }
+
         logger()->info('CheckoutController::process', $request->all());
         
         $request->validate([

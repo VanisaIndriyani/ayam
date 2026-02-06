@@ -83,9 +83,19 @@ Route::middleware(['auth', 'role:user'])->group(function () {
         Route::get('/', [CheckoutController::class, 'index'])->name('index');
         Route::get('/search-location', [CheckoutController::class, 'searchLocation'])->name('searchLocation');
         Route::post('/shipping-cost', [CheckoutController::class, 'shippingCost'])->name('shippingCost');
-        Route::post('/process', [CheckoutController::class, 'process'])->name('process');
+        // Change to match to handle potential redirect issues (GET fallback)
+        Route::match(['get', 'post'], '/process', [CheckoutController::class, 'process'])->name('process');
     });
 
+});
+
+// Emergency Route Cache Clearer (Accessible via URL)
+Route::get('/fix-routes', function() {
+    \Illuminate\Support\Facades\Artisan::call('route:clear');
+    \Illuminate\Support\Facades\Artisan::call('config:clear');
+    \Illuminate\Support\Facades\Artisan::call('cache:clear');
+    \Illuminate\Support\Facades\Artisan::call('view:clear');
+    return "Routes, Config, Cache, and Views cleared!";
 });
 
 Route::middleware(['auth'])->group(function () {
