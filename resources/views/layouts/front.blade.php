@@ -145,7 +145,7 @@
     @includeIf('components.modal-success')
 
     {{-- JS --}}
-    <script src="{{ asset('js/script.js') }}"></script>
+    <script src="{{ asset('js/script.js') }}?v={{ time() }}"></script>
 
     @stack('scripts')
 
