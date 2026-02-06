@@ -180,10 +180,11 @@
          orderBtn.innerText = 'Processing...';
 
          try {
-             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-             const res = await fetch(`/cart/add/${productId}`, {
-                 method: 'POST',
-                 headers: {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            const baseUrl = document.querySelector('meta[name="base-url"]')?.content || '';
+            const res = await fetch(`${baseUrl}/cart/add/${productId}`, {
+                method: 'POST',
+                headers: {
                      'Content-Type': 'application/json',
                      'X-CSRF-TOKEN': csrfToken,
                      'Accept': 'application/json'
