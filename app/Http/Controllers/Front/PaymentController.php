@@ -21,7 +21,14 @@ class PaymentController extends Controller
 
         if ($order->user_id !== auth()->id()) {
             logger()->warning('Payment Forbidden: user mismatch', ['order_user' => $order->user_id, 'auth_user' => auth()->id()]);
-            abort(403);
+            
+            // Temporary Debugging for 403 Error
+            return response()->view('errors.403_debug', [
+                'order_user_id' => $order->user_id,
+                'current_user_id' => auth()->id(),
+                'order_id' => $order->id,
+                'user_name' => auth()->user()->name ?? 'Guest'
+            ], 403);
         }
 
         if ($order->payment_status !== 'pending') {
