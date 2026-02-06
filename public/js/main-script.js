@@ -211,9 +211,14 @@
              });
 
              const data = await res.json();
-             if (data.success) {
-                 window.location.href = data.redirect || '/checkout';
-             } else {
+            if (data.success) {
+                if (data.redirect) {
+                     window.location.href = data.redirect;
+                } else {
+                     // Fallback using baseUrl
+                     window.location.href = `${baseUrl}/checkout`;
+                }
+            } else {
                  alert(data.message || 'Gagal menambahkan ke keranjang');
                  orderBtn.disabled = false;
                  orderBtn.innerText = originalText;

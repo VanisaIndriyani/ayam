@@ -212,7 +212,12 @@ window.addEventListener("scroll", function() {
 
             const data = await res.json();
             if (data.success) {
-                window.location.href = data.redirect || '/checkout';
+                if (data.redirect) {
+                     window.location.href = data.redirect;
+                } else {
+                     // Fallback using baseUrl
+                     window.location.href = `${baseUrl}/checkout`;
+                }
             } else {
                 alert(data.message || 'Gagal menambahkan ke keranjang');
                 orderBtn.disabled = false;
