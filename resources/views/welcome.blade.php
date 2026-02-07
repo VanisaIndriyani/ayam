@@ -65,11 +65,10 @@
 
                         {{-- Logout --}}
                         <li class="nav-item me-2">
-                            <form action="{{ route('logout') }}" method="POST">
+                            <form action="{{ route('logout') }}" method="POST" class="d-inline">
                                 @csrf
-                                <button type="submit" class="btn btn-sm btn-outline-light px-2 py-1" style="border-radius: 6px;">
+                                <button type="submit" class="tempe2 text-white fs-5" style="background:none; border:none; padding:0; padding-bottom:4px; border-bottom:2px solid transparent;" title="Keluar">
                                     <i class="bi bi-box-arrow-right"></i>
-                                    Keluar
                                 </button>
                             </form>
                         </li>
