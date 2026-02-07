@@ -165,19 +165,19 @@
                     <div class="col-12">
                         <label class="form-label">Nama Penerima</label>
                         <input type="text" name="shipping_name" class="form-control"
-                               placeholder="Nama lengkap penerima" required>
+                               placeholder="Nama lengkap penerima" required value="{{ Auth::user()->name }}">
                     </div>
 
                     <div class="col-12">
                         <label class="form-label">Nomor Telepon</label>
                         <input type="text" name="shipping_phone" class="form-control"
-                               placeholder="08xxxxxxxxxx" required>
+                               placeholder="08xxxxxxxxxx" required value="{{ Auth::user()->phone ?? '' }}">
                     </div>
 
                     <div class="col-12">
                         <label class="form-label">Alamat Lengkap</label>
                         <textarea name="shipping_address" class="form-control"
-                                  rows="3" placeholder="Jalan, RT/RW, Kelurahan, Kecamatan" required></textarea>
+                                  rows="3" placeholder="Jalan, RT/RW, Kelurahan, Kecamatan" required>{{ Auth::user()->address ?? '' }}</textarea>
                     </div>
 
                     <!-- Location Search (Wrapper for Select2) -->
