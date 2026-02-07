@@ -564,6 +564,12 @@
                     msg = data.rajaongkir.status.description;
                  }
                  serviceSelect.innerHTML = `<option value="">${msg}</option>`;
+            } else {
+                // Auto select if only 1 option or if courier is antar_toko
+                if (serviceSelect.options.length === 2 || courier === 'antar_toko') {
+                     serviceSelect.selectedIndex = 1; // Index 0 is placeholder
+                     updateTotals();
+                }
             }
 
         } catch (error) {
