@@ -16,6 +16,8 @@
     color: white !important;
     font-size: 1rem;
     white-space: nowrap;
+    padding-top: 0 !important;
+    margin-top: -3px;
 }
 
 .navbar.bg-dark.neumorph-index {
