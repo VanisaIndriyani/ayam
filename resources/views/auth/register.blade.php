@@ -97,31 +97,82 @@
                 @enderror
             </div>
 
-            {{-- PASSWORD --}}
+            {{-- PHONE --}}
             <div class="form-floating mb-3">
-                <input type="password" name="password" id="password"
-                       class="form-control @error('password') is-invalid @enderror"
-                       placeholder="Password" required>
+                <input type="text" name="phone" id="phone"
+                       class="form-control @error('phone') is-invalid @enderror"
+                       placeholder="No. Telepon" required value="{{ old('phone') }}">
 
-                <label for="password">Password</label>
+                <label for="phone">No. Telepon</label>
+
+                @error('phone')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            {{-- ADDRESS --}}
+            <div class="form-floating mb-3">
+                <textarea name="address" id="address" style="height: 100px"
+                       class="form-control @error('address') is-invalid @enderror"
+                       placeholder="Alamat Lengkap" required>{{ old('address') }}</textarea>
+
+                <label for="address">Alamat Lengkap</label>
+
+                @error('address')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            {{-- PASSWORD --}}
+            <div class="input-group mb-3">
+                <div class="form-floating">
+                    <input type="password" name="password" id="password"
+                           class="form-control @error('password') is-invalid @enderror"
+                           placeholder="Password" required>
+                    <label for="password">Password</label>
+                </div>
+                <span class="input-group-text bg-white" onclick="togglePassword('password', 'togglePasswordIcon')" style="cursor: pointer;">
+                    <i class="fa-solid fa-eye" id="togglePasswordIcon"></i>
+                </span>
 
                 @error('password')
-                    <div class="invalid-feedback">{{ $message }}</div>
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
 
             {{-- CONFIRM PASSWORD --}}
-            <div class="form-floating mb-4">
-                <input type="password" name="password_confirmation" id="password_confirmation"
-                       class="form-control @error('password_confirmation') is-invalid @enderror"
-                       placeholder="Konfirmasi Password" required>
-
-                <label for="password_confirmation">Konfirmasi Password</label>
+            <div class="input-group mb-4">
+                <div class="form-floating">
+                    <input type="password" name="password_confirmation" id="password_confirmation"
+                           class="form-control @error('password_confirmation') is-invalid @enderror"
+                           placeholder="Konfirmasi Password" required>
+                    <label for="password_confirmation">Konfirmasi Password</label>
+                </div>
+                <span class="input-group-text bg-white" onclick="togglePassword('password_confirmation', 'toggleConfirmPasswordIcon')" style="cursor: pointer;">
+                    <i class="fa-solid fa-eye" id="toggleConfirmPasswordIcon"></i>
+                </span>
 
                 @error('password_confirmation')
-                    <div class="invalid-feedback">{{ $message }}</div>
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
+
+            <script>
+                function togglePassword(inputId, iconId) {
+                    const input = document.getElementById(inputId);
+                    const icon = document.getElementById(iconId);
+            
+                    if (input.type === "password") {
+                        input.type = "text";
+                        icon.classList.remove("fa-eye");
+                        icon.classList.add("fa-eye-slash");
+                    } else {
+                        input.type = "password";
+                        icon.classList.remove("fa-eye-slash");
+                        icon.classList.add("fa-eye");
+                    }
+                }
+            </script>
 
             {{-- SUBMIT BUTTON --}}
             <button class="btn btn-bohrifarm w-100 mb-3">

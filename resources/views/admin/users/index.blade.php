@@ -26,6 +26,8 @@
                         <th>#</th>
                         <th>Nama</th>
                         <th>Email</th>
+                        <th>No. HP</th>
+                        <th>Alamat</th>
                         <th>Role</th>
                         <th>Dibuat</th>
                         <th>Aksi</th>
@@ -40,6 +42,9 @@
                         <td>{{ $user->name }}</td>
 
                         <td>{{ $user->email }}</td>
+
+                        <td>{{ $user->phone ?? '-' }}</td>
+                        <td>{{ Str::limit($user->address, 30) }}</td>
 
                         <td>
                             <span class="badge {{ $user->role == 'admin' ? 'bg-success' : 'bg-primary' }}">

@@ -93,17 +93,38 @@
             </div>
 
             {{-- PASSWORD --}}
-            <div class="form-floating mb-3">
-                <input type="password" id="password" name="password"
-                       class="form-control @error('password') is-invalid @enderror"
-                       placeholder="Masukkan password" required>
-
-                <label for="password">Password</label>
-
+            <div class="input-group mb-3">
+                <div class="form-floating">
+                    <input type="password" id="password" name="password"
+                           class="form-control @error('password') is-invalid @enderror"
+                           placeholder="Masukkan password" required>
+                    <label for="password">Password</label>
+                </div>
+                <span class="input-group-text bg-white" onclick="togglePassword('password', 'togglePasswordIcon')" style="cursor: pointer;">
+                    <i class="fa-solid fa-eye" id="togglePasswordIcon"></i>
+                </span>
+                
                 @error('password')
-                    <div class="invalid-feedback">{{ $message }}</div>
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
+
+            <script>
+                function togglePassword(inputId, iconId) {
+                    const input = document.getElementById(inputId);
+                    const icon = document.getElementById(iconId);
+            
+                    if (input.type === "password") {
+                        input.type = "text";
+                        icon.classList.remove("fa-eye");
+                        icon.classList.add("fa-eye-slash");
+                    } else {
+                        input.type = "password";
+                        icon.classList.remove("fa-eye-slash");
+                        icon.classList.add("fa-eye");
+                    }
+                }
+            </script>
 
             {{-- REMEMBER ME --}}
             <div class="d-flex align-items-center mb-3">
