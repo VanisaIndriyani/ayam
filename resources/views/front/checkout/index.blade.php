@@ -211,6 +211,20 @@
                         </select>
                     </div>
 
+                    <!-- REKOMENDASI PENGIRIMAN -->
+                    <div class="col-12">
+                        <div class="alert alert-info border-0 bg-light shadow-sm d-flex gap-3 align-items-center mb-0">
+                            <i class="bi bi-info-circle-fill fs-4 text-primary"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1 text-primary">Info Pengiriman:</h6>
+                                <ul class="mb-0 ps-3 small text-muted">
+                                    <li>Untuk pembelian <b>Banyak / Grosir</b>, disarankan pilih <b>Kurir Toko</b> (Diantar Mobil Pickup).</li>
+                                    <li>Untuk pembelian <b>Sedikit (1-2 Ekor)</b>, disarankan pilih <b>JNE / J&T</b> agar ongkir lebih murah.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Manual Shipping Cost Input (Hidden by default) -->
                     <div class="col-12 d-none" id="manual_cost_container">
                         <label class="form-label fw-bold small text-uppercase text-secondary">Biaya Ongkir Manual</label>
