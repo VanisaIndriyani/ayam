@@ -219,7 +219,7 @@
                                 <h6 class="fw-bold mb-1 text-primary">Info Pengiriman:</h6>
                                 <ul class="mb-0 ps-3 small text-muted">
                                     <li>Untuk pembelian <b>Banyak / Grosir</b>, disarankan pilih <b>Kurir Toko</b> (Diantar Mobil Pickup).</li>
-                                    <li>Untuk pembelian <b>Sedikit (1-2 Ekor)</b>, disarankan pilih <b>JNE / J&T</b> agar ongkir lebih murah.</li>
+                                    <li>Untuk pembelian <b>Sedikit (1-2 Ekor)</b> atau <b>Telur (sekiloan)</b> jarak jauh, disarankan pilih <b>JNE / J&T</b> agar ongkir lebih murah.</li>
                                 </ul>
                             </div>
                         </div>

@@ -357,10 +357,8 @@
             @if($products->count() > 1)
             <div class="controls">
                 <div class="dots" id="dots"></div>
-                <div class="arrow-group">
-                    <button class="btn-circle" id="prev">‹</button>
-                    <button class="btn-circle" id="next">›</button>
-                </div>
+                <button class="btn-circle" id="prev">‹</button>
+                <button class="btn-circle" id="next">›</button>
             </div>
             @endif
     
