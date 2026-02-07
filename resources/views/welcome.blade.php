@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
     {{-- Custom CSS --}}
-    <link rel="stylesheet" href="{{ asset('css/gaya.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/gaya.css') }}?v={{ time() }}">
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="user-logged-in" content="{{ auth()->check() ? '1' : '0' }}">
