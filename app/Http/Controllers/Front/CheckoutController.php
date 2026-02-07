@@ -90,28 +90,56 @@ class CheckoutController extends Controller
     private function calculateAntarTokoCost($destinationName)
     {
         try {
-            // 1. Koordinat Toko (Default: Monas Jakarta, ganti dengan lokasi toko sebenarnya)
-            $storeLat = -6.175392; 
-            $storeLng = 106.827153;
+            // 1. Koordinat Toko (Bogor - Alun-alun Kota Bogor sebagai titik tengah)
+            // Ganti dengan koordinat akurat farm jika ada
+            $storeLat = -6.595038; 
+            $storeLng = 106.793311;
 
             // 2. Geocoding Destination
             if (!$destinationName) {
                 return response()->json(['rajaongkir' => ['results' => []]]);
             }
 
-            // Gunakan Nominatim (Free, but limited)
-            $response = Http::timeout(5)->withHeaders([
-                'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'
-            ])->get('https://nominatim.openstreetmap.org/search', [
-                'q' => $destinationName,
-                'format' => 'json',
-                'limit' => 1
-            ]);
+            // Clean destination name attempts
+            // Format dari RajaOngkir biasanya: "Subdistrict, City, Province, Postcode"
+            // Nominatim kadang gagal jika terlalu spesifik atau format tidak sesuai standard OSM
+            $searchQueries = [];
+            $searchQueries[] = $destinationName; // Coba full dulu
+            
+            $parts = explode(',', $destinationName);
+            if (count($parts) >= 2) {
+                // Coba "Kecamatan, Kota"
+                $searchQueries[] = trim($parts[0]) . ', ' . trim($parts[1]);
+            }
+            if (count($parts) >= 1) {
+                // Coba "Kecamatan" saja atau "Kota" saja
+                $searchQueries[] = trim($parts[0]);
+            }
 
-            $data = $response->json();
+            $data = null;
+            
+            foreach ($searchQueries as $query) {
+                try {
+                    $response = Http::timeout(5)->withHeaders([
+                        'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'
+                    ])->get('https://nominatim.openstreetmap.org/search', [
+                        'q' => $query,
+                        'format' => 'json',
+                        'limit' => 1
+                    ]);
+
+                    $result = $response->json();
+                    if (!empty($result)) {
+                        $data = $result;
+                        break; // Ketemu!
+                    }
+                } catch (\Exception $e) {
+                    continue;
+                }
+            }
 
             if (empty($data)) {
-                 throw new \Exception("Nominatim returned empty data");
+                 throw new \Exception("Nominatim returned empty data for all queries: " . json_encode($searchQueries));
             }
 
             $destLat = $data[0]['lat'];
@@ -134,7 +162,7 @@ class CheckoutController extends Controller
             $ratePerKm = 3000;
             $cost = ceil($distance) * $ratePerKm;
 
-            // Minimum cost (optional, e.g., 10k)
+            // Minimum cost (10k)
             if ($cost < 10000) $cost = 10000;
 
             // 5. Return structure mirip RajaOngkir
@@ -165,12 +193,12 @@ class CheckoutController extends Controller
         } catch (\Exception $e) {
             \Log::error('Antar Toko Error: ' . $e->getMessage());
             
-            // Fallback jika gagal geocoding (misal timeout atau limit)
-            // Asumsi jarak default 10km agar user tetap bisa checkout
-            $fallbackDistance = 10;
-            $fallbackCost = $fallbackDistance * 3000;
-             if ($fallbackCost < 10000) $fallbackCost = 10000;
-
+            // Fallback jika gagal geocoding
+            // Kita naikkan default fallback distance karena user komplain jarak jauh
+            // Asumsi default 30km (Bogor-Cikarang approx 40-50km, tapi 30km aman)
+            $fallbackDistance = 30; 
+            $fallbackCost = $fallbackDistance * 3000; // 90.000
+            
             return response()->json([
                 'rajaongkir' => [
                     'results' => [
@@ -185,7 +213,7 @@ class CheckoutController extends Controller
                                         [
                                             'value' => $fallbackCost,
                                             'etd' => '1',
-                                            'note' => 'Estimasi Jarak: ' . $fallbackDistance . ' km (Manual)'
+                                            'note' => 'Estimasi Manual (Gagal hitung otomatis)'
                                         ]
                                     ]
                                 ]
