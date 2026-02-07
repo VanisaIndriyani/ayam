@@ -24,7 +24,7 @@
 <body>
 
     {{-- ================= NAVBAR ================= --}}
-    <nav class="neumorph-index navbar-expand-sm navbar bg-dark navbar-dark py-1 fixed-top">
+    <nav class="neumorph-index navbar-expand-sm navbar bg-dark navbar-dark py-2 fixed-top">
         <div class="container-fluid">
 
             <div class="navbar-header-flex">
