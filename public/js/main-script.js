@@ -246,9 +246,9 @@
          let current = "";
 
          sections.forEach(section => {
-             const sectionTop = section.offsetTop - 150; // tambah offset biar bagian atas kebaca
-             const sectionHeight = section.clientHeight;
-             if (scrollY >= sectionTop && scrollY < sectionTop + sectionHeight) {
+            const sectionTop = section.offsetTop - 60; // tambah offset biar bagian atas kebaca
+            const sectionHeight = section.clientHeight;
+            if (scrollY >= sectionTop && scrollY < sectionTop + sectionHeight) {
                  current = section.getAttribute("id");
              }
          });

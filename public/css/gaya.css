@@ -208,7 +208,7 @@ section.noscroll {
     --accent: #ff8a00;
     --card-w: 320px;
     --card-h: 420px;
-    --gap: 28px;
+    --gap: 50px;
 }
 
 * {
@@ -371,7 +371,7 @@ section.noscroll {
     :root {
         --card-w: 220px;
         --card-h: 300px;
-        --gap: 20px;
+        --gap: 30px;
     }
 
     html,
