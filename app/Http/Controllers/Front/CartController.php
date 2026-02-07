@@ -93,6 +93,6 @@ class CartController extends Controller
     {
         $item->delete();
 
-        return redirect()->route('cart.index')->with('success', 'Produk dihapus dari keranjang.');
+        return redirect()->back()->with('success', 'Produk dihapus dari keranjang.');
     }
 }

@@ -22,7 +22,7 @@ class CheckoutController extends Controller
                     ->first();
 
         // If no cart, maybe we can create one or redirect to products
-        if (!$cart) {
+        if (!$cart || $cart->items->isEmpty()) {
             return redirect()->route('products.index')->with('error', 'Keranjang belanja kosong.');
         }
 

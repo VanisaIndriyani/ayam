@@ -251,7 +251,15 @@
                             <div class="fw-semibold text-truncate" style="max-width:180px;">
                                 {{ $item->product->name }}
                             </div>
-                            <small class="text-muted">x {{ $item->quantity }}</small>
+                            <div class="d-flex align-items-center">
+                                <small class="text-muted me-2">x {{ $item->quantity }}</small>
+                                <form action="{{ route('cart.remove', $item->id) }}" method="POST" class="d-inline">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-link text-danger p-0" onclick="return confirm('Hapus item ini?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                         <div class="fw-bold">
                             Rp {{ number_format($item->subtotal) }}
