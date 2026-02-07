@@ -256,7 +256,7 @@ document.addEventListener("DOMContentLoaded", function() {
         // Untuk link teks
         navLinks1.forEach(link => {
             link.classList.remove("active-tempe");
-            if (link.getAttribute("href") === "#" + current) {
+            if (current && link.getAttribute("href").includes("#" + current)) {
                 link.classList.add("active-tempe");
             }
         });
@@ -266,7 +266,7 @@ document.addEventListener("DOMContentLoaded", function() {
             link.classList.remove("active-tempe2");
 
             // khusus ikon rumah aktif hanya saat di #home
-            if (link.getAttribute("href") === "#home" && current === "home") {
+            if (current === "home" && link.getAttribute("href").includes("#home")) {
                 link.classList.add("active-tempe2");
             }
         });

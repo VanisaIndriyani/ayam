@@ -254,22 +254,22 @@
          });
 
          // Untuk link teks
-         navLinks1.forEach(link => {
-             link.classList.remove("active-tempe");
-             if (link.getAttribute("href") === "#" + current) {
-                 link.classList.add("active-tempe");
-             }
-         });
+        navLinks1.forEach(link => {
+            link.classList.remove("active-tempe");
+            if (current && link.getAttribute("href").includes("#" + current)) {
+                link.classList.add("active-tempe");
+            }
+        });
 
-         // Untuk ikon (tempe2)
-         navLinks2.forEach(link => {
-             link.classList.remove("active-tempe2");
+        // Untuk ikon (tempe2)
+        navLinks2.forEach(link => {
+            link.classList.remove("active-tempe2");
 
-             // khusus ikon rumah aktif hanya saat di #home
-             if (link.getAttribute("href") === "#home" && current === "home") {
-                 link.classList.add("active-tempe2");
-             }
-         });
+            // khusus ikon rumah aktif hanya saat di #home
+            if (current === "home" && link.getAttribute("href").includes("#home")) {
+                link.classList.add("active-tempe2");
+            }
+        });
      }
 
      window.addEventListener("scroll", setActiveLink);
