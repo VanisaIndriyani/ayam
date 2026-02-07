@@ -203,7 +203,7 @@
                         </select>
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-md-6" id="service_container">
                         <label class="form-label">Layanan</label>
                         <select id="service" name="service"
                                 class="form-select" disabled required>
@@ -418,6 +418,10 @@
         const destination = selectedDestinationId; // Use the Variable
         const courier = courierSelect.value;
         const weight = {{ $cart->items->sum(fn($i) => $i->product->weight * $i->quantity) }}; // Ensure weight is passed
+        
+        // Visibility Service Container
+        const serviceContainer = document.getElementById('service_container');
+        if (serviceContainer) serviceContainer.classList.remove('d-none');
 
         // Reset service selection
         serviceSelect.innerHTML = '<option value="">Pilih kota & kurir</option>';
@@ -569,6 +573,11 @@
                 if (serviceSelect.options.length === 2 || courier === 'antar_toko') {
                      serviceSelect.selectedIndex = 1; // Index 0 is placeholder
                      updateTotals();
+                }
+
+                // Hide service dropdown if Antar Toko (User Request)
+                if (courier === 'antar_toko' && serviceContainer) {
+                    serviceContainer.classList.add('d-none');
                 }
             }
 
