@@ -223,6 +223,13 @@ class CheckoutController extends Controller
              $searchQueries[] = "$subdistrict, $district, $city";
         }
 
+        // 1b. Postal Code (Very Accurate)
+        $postalCode = null;
+        if (isset($parts[4]) && is_numeric(trim($parts[4]))) {
+            $postalCode = trim($parts[4]);
+            $searchQueries[] = "$postalCode, Indonesia";
+        }
+
         // 2. Kecamatan, Kota (Very Reliable)
         if ($district && $city && !str_starts_with($district, '-')) {
             $searchQueries[] = "$district, $city";
@@ -242,7 +249,7 @@ class CheckoutController extends Controller
         }
 
         // Remove duplicates and limit
-        $searchQueries = array_slice(array_unique($searchQueries), 0, 5);
+        $searchQueries = array_slice(array_unique($searchQueries), 0, 6);
         
         $resultCoords = null;
 
@@ -252,12 +259,12 @@ class CheckoutController extends Controller
              try {
                  // Add delay for 2nd request onwards to respect policy
                  if ($index > 0) {
-                     usleep(1000000); // 1 second delay
+                     usleep(1200000); // 1.2 second delay (slightly more than 1s)
                  }
 
-                 $response = Http::timeout(5)
+                 $response = Http::timeout(10) // Increased timeout
                      ->withHeaders([
-                         'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)',
+                         'User-Agent' => 'Mozilla/5.0 (compatible; Bohrifarm/1.0; +https://bohrifarm.com)',
                          'Referer' => 'https://bohrifarm.com'
                      ])
                      ->get('https://nominatim.openstreetmap.org/search', [
@@ -274,6 +281,7 @@ class CheckoutController extends Controller
                      }
                  }
              } catch (\Exception $e) { 
+                 \Log::warning("Geocoding failed for query: $query. Error: " . $e->getMessage());
                  continue; 
              }
         }
