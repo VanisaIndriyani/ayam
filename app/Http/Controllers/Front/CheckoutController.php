@@ -199,121 +199,82 @@ class CheckoutController extends Controller
     {
         if (!$destinationName) return null;
 
-        // Caching Key based on destination name (v2 to invalidate potential bad cache)
-        $cacheKey = 'geo_v2_' . md5(strtolower(trim($destinationName)));
+        // Caching Key based on destination name (v3 for stability)
+        $cacheKey = 'geo_v3_' . md5(strtolower(trim($destinationName)));
         
         if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
             return \Illuminate\Support\Facades\Cache::get($cacheKey);
         }
             
         // Clean up destination name
-        // Format example: "-, BANDUNG, BANDUNG, JAWA BARAT, 40614"
         $parts = array_map('trim', explode(',', $destinationName));
         $searchQueries = [];
         
-        // 1. Full string (only if it doesn't start with -)
-        if (!str_starts_with($destinationName, '-')) {
-            $searchQueries[] = $destinationName;
+        // Mapping based on typical Select2 format: "KELURAHAN, KECAMATAN, KOTA, PROVINSI, KODEPOS"
+        $subdistrict = $parts[0] ?? ''; // Kelurahan
+        $district = $parts[1] ?? '';    // Kecamatan
+        $city = $parts[2] ?? '';        // Kota/Kab
+        $province = $parts[3] ?? '';    // Provinsi
+
+        // Prioritize queries that are most likely to work and be accurate
+        
+        // 1. Kelurahan, Kecamatan, Kota (Most Specific)
+        if ($subdistrict && $district && $city && !str_starts_with($subdistrict, '-')) {
+             $searchQueries[] = "$subdistrict, $district, $city";
         }
 
-        $subdistrict = $parts[0] ?? '';
-        $city = $parts[1] ?? '';
-        $type = $parts[2] ?? ''; // KABUPATEN / KOTA
-        $province = $parts[3] ?? '';
-        
-        // 2. Subdistrict + City
-        if ($subdistrict && $subdistrict !== '-') {
-            if ($city) {
-                $searchQueries[] = "$subdistrict, $city";
-            }
-            $searchQueries[] = $subdistrict;
+        // 2. Kecamatan, Kota (Very Reliable)
+        if ($district && $city && !str_starts_with($district, '-')) {
+            $searchQueries[] = "$district, $city";
         }
-        
-        // 3. City + Province (Fallback - Index 1)
-        if ($city) {
+
+        // 3. Kecamatan Only
+        if ($district && !str_starts_with($district, '-')) {
+             if ($province) $searchQueries[] = "$district, $province";
+             $searchQueries[] = $district;
+        }
+
+        // 4. Kota Only (Broad Fallback)
+        if ($city && !str_starts_with($city, '-')) {
             $cleanCity = str_ireplace(['KOTA ', 'KABUPATEN '], '', $city);
-            if ($province) {
-                $searchQueries[] = "$cleanCity, $province";
-            }
+            if ($province) $searchQueries[] = "$cleanCity, $province";
             $searchQueries[] = $cleanCity;
         }
 
-        // 4. City + Province (Fallback - Index 2)
-        if ($type && $type !== '-') {
-             $cleanType = str_ireplace(['KOTA ', 'KABUPATEN '], '', $type);
-             if ($province) {
-                 $searchQueries[] = "$cleanType, $province";
-             }
-             $searchQueries[] = $cleanType;
-        }
-
-        // Limit queries to top 8 to ensure all fallbacks are included
-        $searchQueries = array_slice(array_unique($searchQueries), 0, 8);
+        // Remove duplicates and limit
+        $searchQueries = array_slice(array_unique($searchQueries), 0, 5);
         
         $resultCoords = null;
 
-        // Use Http Pool for Parallel Execution (Much Faster)
-        try {
-            $responses = Http::pool(function ($pool) use ($searchQueries) {
-                $requests = [];
-                foreach ($searchQueries as $query) {
-                    $requests[] = $pool->timeout(5)
-                        ->withHeaders([
-                            'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)',
-                            'Referer' => 'https://bohrifarm.com'
-                        ])
-                        ->get('https://nominatim.openstreetmap.org/search', [
-                            'q' => $query,
-                            'format' => 'json',
-                            'limit' => 1,
-                            'addressdetails' => 1
-                        ]);
-                }
-                return $requests;
-            });
+        // SEQUENTIAL EXECUTION ONLY (To respect Nominatim Policy of 1 req/sec)
+        // Parallel execution (Http::pool) causes 429 Too Many Requests and IP blocks.
+        foreach ($searchQueries as $index => $query) {
+             try {
+                 // Add delay for 2nd request onwards to respect policy
+                 if ($index > 0) {
+                     usleep(1000000); // 1 second delay
+                 }
 
-            foreach ($responses as $response) {
-                if ($response instanceof \Illuminate\Http\Client\Response && $response->ok()) {
-                    $result = $response->json();
-                    if (!empty($result)) {
-                        $resultCoords = [
-                            'lat' => $result[0]['lat'],
-                            'lon' => $result[0]['lon']
-                        ];
-                        break;
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            // Pool failed, proceed to sequential fallback
-        }
-
-        // Fallback to sequential if pool didn't find anything or failed
-        if (!$resultCoords) {
-             foreach ($searchQueries as $query) {
-                 try {
-                     // Add small delay to avoid rate limiting (429)
-                     usleep(300000); // 0.3s delay
-
-                     $response = Http::timeout(5)
-                         ->withHeaders([
-                             'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)',
-                             'Referer' => 'https://bohrifarm.com'
-                         ])
-                         ->get('https://nominatim.openstreetmap.org/search', [
-                             'q' => $query,
-                             'format' => 'json',
-                             'limit' => 1
-                         ]);
-                     
-                     if ($response->ok()) {
-                         $result = $response->json();
-                         if (!empty($result)) {
-                             $resultCoords = ['lat' => $result[0]['lat'], 'lon' => $result[0]['lon']];
-                             break;
-                         }
+                 $response = Http::timeout(5)
+                     ->withHeaders([
+                         'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)',
+                         'Referer' => 'https://bohrifarm.com'
+                     ])
+                     ->get('https://nominatim.openstreetmap.org/search', [
+                         'q' => $query,
+                         'format' => 'json',
+                         'limit' => 1
+                     ]);
+                 
+                 if ($response->ok()) {
+                     $result = $response->json();
+                     if (!empty($result)) {
+                         $resultCoords = ['lat' => $result[0]['lat'], 'lon' => $result[0]['lon']];
+                         break; // Found it! Stop searching.
                      }
-                 } catch (\Exception $e) { continue; }
+                 }
+             } catch (\Exception $e) { 
+                 continue; 
              }
         }
 
