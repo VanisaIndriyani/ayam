@@ -235,6 +235,47 @@ class CheckoutController extends Controller
             $request->courier
         );
 
+        // CHECK FOR API LIMIT ERROR AND PROVIDE FALLBACK (Standard Courier)
+        $isError = false;
+        $errorMsg = '';
+        
+        if (isset($response['rajaongkir']['status']['code']) && $response['rajaongkir']['status']['code'] >= 400) {
+            $isError = true;
+            $errorMsg = $response['rajaongkir']['status']['description'] ?? 'Unknown Error';
+        } elseif (isset($response['meta']['code']) && $response['meta']['code'] >= 400) {
+            $isError = true;
+            $errorMsg = $response['meta']['message'] ?? 'Unknown Error';
+        }
+
+        if ($isError) {
+             if (str_contains(strtolower($errorMsg), 'limit')) {
+                // Fallback for JNE/J&T/etc
+                return response()->json([
+                    'rajaongkir' => [
+                        'results' => [
+                            [
+                                'code' => $request->courier,
+                                'name' => strtoupper($request->courier),
+                                'costs' => [
+                                    [
+                                        'service' => 'REG',
+                                        'description' => 'Layanan Reguler (Fallback Mode)',
+                                        'cost' => [
+                                            [
+                                                'value' => 18000, 
+                                                'etd' => '2-3',
+                                                'note' => 'API Limit Habis (Estimasi)'
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]);
+             }
+        }
+
         return $response;
     }
 
