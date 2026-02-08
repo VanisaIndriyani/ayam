@@ -151,51 +151,85 @@ class CheckoutController extends Controller
         return $frozenCosts;
     }
 
+    private function getCoordinates($destinationName)
+    {
+        if (!$destinationName) return null;
+
+        // Clean up destination name
+        // Format example: "-, BANDUNG, BANDUNG, JAWA BARAT, 40614"
+        // Format example: "COBLONG, KOTA BANDUNG, JAWA BARAT, 40132"
+        
+        $parts = array_map('trim', explode(',', $destinationName));
+        $searchQueries = [];
+        
+        // 1. Full string (only if it doesn't start with -)
+        if (!str_starts_with($destinationName, '-')) {
+            $searchQueries[] = $destinationName;
+        }
+
+        $subdistrict = $parts[0] ?? '';
+        $city = $parts[1] ?? '';
+        $type = $parts[2] ?? ''; // KABUPATEN / KOTA
+        $province = $parts[3] ?? '';
+        
+        // 2. Subdistrict + City
+        if ($subdistrict && $subdistrict !== '-') {
+            if ($city) {
+                $searchQueries[] = "$subdistrict, $city";
+            }
+            $searchQueries[] = $subdistrict;
+        }
+        
+        // 3. City + Province (Fallback)
+        if ($city) {
+            // Remove "KOTA" or "KABUPATEN" prefix if present for better matching
+            $cleanCity = str_ireplace(['KOTA ', 'KABUPATEN '], '', $city);
+            
+            if ($province) {
+                $searchQueries[] = "$cleanCity, $province";
+            }
+            $searchQueries[] = $cleanCity;
+        }
+
+        foreach ($searchQueries as $query) {
+            try {
+                $response = Http::timeout(5)->withHeaders([
+                    'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'
+                ])->get('https://nominatim.openstreetmap.org/search', [
+                    'q' => $query,
+                    'format' => 'json',
+                    'limit' => 1
+                ]);
+
+                $result = $response->json();
+                if (!empty($result)) {
+                    return [
+                        'lat' => $result[0]['lat'],
+                        'lon' => $result[0]['lon']
+                    ];
+                }
+            } catch (\Exception $e) { continue; }
+        }
+
+        return null;
+    }
+
     private function calculateLalamoveCost($destinationName)
     {
         try {
-            // Re-use logic koordinat & geocoding dari Antar Toko
-            // 1. Koordinat Toko
+            // 1. Koordinat Toko (Bogor - Alun-alun Kota Bogor sebagai titik tengah)
             $storeLat = -6.595038; 
             $storeLng = 106.793311;
 
             // 2. Geocoding Destination
-            if (!$destinationName) {
-                return response()->json(['rajaongkir' => ['results' => []]]);
+            $coords = $this->getCoordinates($destinationName);
+            
+            if (!$coords) {
+                 throw new \Exception("Gagal menemukan lokasi: $destinationName");
             }
 
-            // Simple geocoding logic (reused)
-            $searchQueries = [];
-            $searchQueries[] = $destinationName;
-            $parts = explode(',', $destinationName);
-            if (count($parts) >= 2) $searchQueries[] = trim($parts[0]) . ', ' . trim($parts[1]);
-            if (count($parts) >= 1) $searchQueries[] = trim($parts[0]);
-
-            $data = null;
-            foreach ($searchQueries as $query) {
-                try {
-                    $response = Http::timeout(5)->withHeaders([
-                        'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'
-                    ])->get('https://nominatim.openstreetmap.org/search', [
-                        'q' => $query,
-                        'format' => 'json',
-                        'limit' => 1
-                    ]);
-
-                    $result = $response->json();
-                    if (!empty($result)) {
-                        $data = $result;
-                        break;
-                    }
-                } catch (\Exception $e) { continue; }
-            }
-
-            if (empty($data)) {
-                 throw new \Exception("Nominatim returned empty data");
-            }
-
-            $destLat = $data[0]['lat'];
-            $destLng = $data[0]['lon'];
+            $destLat = $coords['lat'];
+            $destLng = $coords['lon'];
 
             // 3. Hitung Jarak (Haversine Formula)
             $earthRadius = 6371; 
@@ -272,54 +306,14 @@ class CheckoutController extends Controller
             $storeLng = 106.793311;
 
             // 2. Geocoding Destination
-            if (!$destinationName) {
-                return response()->json(['rajaongkir' => ['results' => []]]);
-            }
-
-            // Clean destination name attempts
-            // Format dari RajaOngkir biasanya: "Subdistrict, City, Province, Postcode"
-            // Nominatim kadang gagal jika terlalu spesifik atau format tidak sesuai standard OSM
-            $searchQueries = [];
-            $searchQueries[] = $destinationName; // Coba full dulu
+            $coords = $this->getCoordinates($destinationName);
             
-            $parts = explode(',', $destinationName);
-            if (count($parts) >= 2) {
-                // Coba "Kecamatan, Kota"
-                $searchQueries[] = trim($parts[0]) . ', ' . trim($parts[1]);
-            }
-            if (count($parts) >= 1) {
-                // Coba "Kecamatan" saja atau "Kota" saja
-                $searchQueries[] = trim($parts[0]);
+            if (!$coords) {
+                 throw new \Exception("Gagal menemukan lokasi: $destinationName");
             }
 
-            $data = null;
-            
-            foreach ($searchQueries as $query) {
-                try {
-                    $response = Http::timeout(5)->withHeaders([
-                        'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'
-                    ])->get('https://nominatim.openstreetmap.org/search', [
-                        'q' => $query,
-                        'format' => 'json',
-                        'limit' => 1
-                    ]);
-
-                    $result = $response->json();
-                    if (!empty($result)) {
-                        $data = $result;
-                        break; // Ketemu!
-                    }
-                } catch (\Exception $e) {
-                    continue;
-                }
-            }
-
-            if (empty($data)) {
-                 throw new \Exception("Nominatim returned empty data for all queries: " . json_encode($searchQueries));
-            }
-
-            $destLat = $data[0]['lat'];
-            $destLng = $data[0]['lon'];
+            $destLat = $coords['lat'];
+            $destLng = $coords['lon'];
 
             // 3. Hitung Jarak (Haversine Formula)
             $earthRadius = 6371; // km
