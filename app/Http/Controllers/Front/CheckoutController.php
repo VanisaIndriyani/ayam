@@ -23,7 +23,7 @@ class CheckoutController extends Controller
 
         // If no cart, maybe we can create one or redirect to products
         if (!$cart || $cart->items->isEmpty()) {
-            return redirect()->route('products.index')->with('error', 'Keranjang belanja kosong.');
+            return redirect('/#pageProduk')->with('error', 'Keranjang belanja kosong.');
         }
 
         $total = $cart->items->sum('subtotal');
