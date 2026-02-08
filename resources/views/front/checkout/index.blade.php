@@ -253,7 +253,9 @@
                             </div>
                             <div class="d-flex align-items-center">
                                 <small class="text-muted me-2">x {{ $item->quantity }}</small>
-                                <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeItem('{{ route('cart.remove', $item->id) }}')">
+                                <button type="button" class="btn btn-sm btn-link text-danger p-0" 
+                                        data-url="{{ route('cart.remove', $item->id) }}"
+                                        onclick="removeItem(this)">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
@@ -351,8 +353,20 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    function removeItem(url) {
+    function removeItem(btn) {
+        const url = btn.dataset.url;
+        if (!url) {
+            console.error('URL delete tidak ditemukan');
+            alert('Terjadi kesalahan: URL hapus tidak valid.');
+            return;
+        }
+
         if(!confirm('Hapus item ini?')) return;
+
+        // Visual feedback
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        btn.disabled = true;
 
         fetch(url, {
             method: 'DELETE',
@@ -365,12 +379,18 @@
             if (response.ok) {
                 window.location.reload();
             } else {
-                alert('Gagal menghapus item.');
+                alert('Gagal menghapus item. Status: ' + response.status);
+                // Reset button
+                btn.innerHTML = originalContent;
+                btn.disabled = false;
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Terjadi kesalahan saat menghapus item.');
+            alert('Terjadi kesalahan koneksi saat menghapus item.');
+            // Reset button
+            btn.innerHTML = originalContent;
+            btn.disabled = false;
         });
     }
 
