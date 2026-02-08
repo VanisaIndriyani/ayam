@@ -53,6 +53,11 @@ class CheckoutController extends Controller
             return $this->calculateAntarTokoCost($request->destination_name);
         }
 
+        // Handle Lalamove
+        if ($request->courier === 'lalamove') {
+            return $this->calculateLalamoveCost($request->destination_name);
+        }
+
         // total berat
         $weight = Cart::where('user_id', Auth::id())
             ->where('status', 'active')
@@ -144,6 +149,118 @@ class CheckoutController extends Controller
             }
         }
         return $frozenCosts;
+    }
+
+    private function calculateLalamoveCost($destinationName)
+    {
+        try {
+            // Re-use logic koordinat & geocoding dari Antar Toko
+            // 1. Koordinat Toko
+            $storeLat = -6.595038; 
+            $storeLng = 106.793311;
+
+            // 2. Geocoding Destination
+            if (!$destinationName) {
+                return response()->json(['rajaongkir' => ['results' => []]]);
+            }
+
+            // Simple geocoding logic (reused)
+            $searchQueries = [];
+            $searchQueries[] = $destinationName;
+            $parts = explode(',', $destinationName);
+            if (count($parts) >= 2) $searchQueries[] = trim($parts[0]) . ', ' . trim($parts[1]);
+            if (count($parts) >= 1) $searchQueries[] = trim($parts[0]);
+
+            $data = null;
+            foreach ($searchQueries as $query) {
+                try {
+                    $response = Http::timeout(5)->withHeaders([
+                        'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'
+                    ])->get('https://nominatim.openstreetmap.org/search', [
+                        'q' => $query,
+                        'format' => 'json',
+                        'limit' => 1
+                    ]);
+
+                    $result = $response->json();
+                    if (!empty($result)) {
+                        $data = $result;
+                        break;
+                    }
+                } catch (\Exception $e) { continue; }
+            }
+
+            if (empty($data)) {
+                 throw new \Exception("Nominatim returned empty data");
+            }
+
+            $destLat = $data[0]['lat'];
+            $destLng = $data[0]['lon'];
+
+            // 3. Hitung Jarak (Haversine Formula)
+            $earthRadius = 6371; 
+            $dLat = deg2rad($destLat - $storeLat);
+            $dLng = deg2rad($destLng - $storeLng);
+
+            $a = sin($dLat / 2) * sin($dLat / 2) +
+                 cos(deg2rad($storeLat)) * cos(deg2rad($destLat)) *
+                 sin($dLng / 2) * sin($dLng / 2);
+
+            $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+            $distance = $earthRadius * $c; // km
+
+            // 4. Hitung Biaya Lalamove (Simulasi)
+            // Base fare: 15.000 (0-2km)
+            // Next km: 4.000/km
+            
+            $baseFare = 15000;
+            $ratePerKm = 4000;
+            
+            if ($distance <= 2) {
+                $cost = $baseFare;
+            } else {
+                $extraDistance = ceil($distance - 2);
+                $cost = $baseFare + ($extraDistance * $ratePerKm);
+            }
+
+            // Round up to nearest 500
+            $cost = ceil($cost / 500) * 500;
+
+            return response()->json([
+                'rajaongkir' => [
+                    'results' => [
+                        [
+                            'code' => 'lalamove',
+                            'name' => 'Lalamove',
+                            'costs' => [
+                                [
+                                    'service' => 'Lalamove (Motor)',
+                                    'description' => 'Pengiriman Instan',
+                                    'cost' => [
+                                        [
+                                            'value' => $cost,
+                                            'etd' => '1-3 Jam',
+                                            'note' => 'Jarak: ' . number_format($distance, 1) . ' km'
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'meta' => [
+                    'code' => 500,
+                    'message' => 'Gagal menghitung tarif Lalamove: ' . $e->getMessage()
+                ],
+                'rajaongkir' => [
+                    'results' => []
+                ]
+            ]);
+        }
     }
 
     private function calculateAntarTokoCost($destinationName)

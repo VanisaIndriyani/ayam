@@ -199,6 +199,7 @@
                             <option value="jne">JNE</option>
                             <option value="jnt">J&T</option>
                             <option value="antar_toko">Antar Toko (Rp 3.000/km)</option>
+                            <option value="lalamove">Lalamove (Instan)</option>
                             <option value="ambil_sendiri">Ambil Sendiri</option>
 
                             @php
@@ -229,8 +230,8 @@
                             <div>
                                 <h6 class="fw-bold mb-1 text-primary">Info Pengiriman:</h6>
                                 <ul class="mb-0 ps-3 small text-muted">
-                                    <li>Untuk pembelian <b>Banyak / Grosir</b>, disarankan pilih <b>Kurir Toko</b> (Diantar Mobil Pickup).</li>
-                                    <li>Untuk pembelian <b>Sedikit (1-10 Ekor)</b>, disarankan <b>bukan ayam hidup (Ayam Potong)</b> agar bisa menggunakan layanan <b>Frozen (JNE/J&T)</b>. Kurir ekspedisi tidak menerima ayam hidup.</li>
+                                    <li class="mb-2">Untuk pembelian banyak (ayam hidup), disarankan pilih <b>Kurir Lalamove</b> atau <b>Kurir Toko</b> (di antar dengan mobil pickup).</li>
+                                    <li>Untuk pembelian sedikit 1-10 ekor (ayam potong), disarankan menggunakan layanan <b>Frozen (JNE/J&T)</b>, karena kurir tersebut tidak menerima pengiriman ayam hidup.</li>
                                 </ul>
                             </div>
                         </div>
@@ -602,8 +603,8 @@
                  found = true;
             }
 
-            // HANDLE ANTAR TOKO STRUCTURE
-            else if (data.rajaongkir && data.rajaongkir.results && data.rajaongkir.results[0].code === 'antar_toko') {
+            // HANDLE ANTAR TOKO / LALAMOVE STRUCTURE
+            else if (data.rajaongkir && data.rajaongkir.results && (data.rajaongkir.results[0].code === 'antar_toko' || data.rajaongkir.results[0].code === 'lalamove')) {
                 // Logic Antar Toko yang kita buat sendiri
                 let results = data.rajaongkir.results;
                  if (results[0] && results[0].costs && results[0].costs.length > 0) {
@@ -640,14 +641,14 @@
                  }
                  serviceSelect.innerHTML = `<option value="">${msg}</option>`;
             } else {
-                // Auto select if only 1 option or if courier is antar_toko
-                if (serviceSelect.options.length === 2 || courier === 'antar_toko') {
+                // Auto select if only 1 option or if courier is antar_toko or lalamove
+                if (serviceSelect.options.length === 2 || courier === 'antar_toko' || courier === 'lalamove') {
                      serviceSelect.selectedIndex = 1; // Index 0 is placeholder
                      updateTotals();
                 }
 
-                // Hide service dropdown if Antar Toko (User Request)
-                if (courier === 'antar_toko' && serviceContainer) {
+                // Hide service dropdown if Antar Toko or Lalamove (User Request)
+                if ((courier === 'antar_toko' || courier === 'lalamove') && serviceContainer) {
                     serviceContainer.classList.add('d-none');
                 }
             }
