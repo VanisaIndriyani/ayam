@@ -88,25 +88,12 @@ class CheckoutController extends Controller
             );
 
             // Manipulasi response untuk hanya ambil YES dan ganti nama jadi Frozen
+            // Handle Structure 1: Standard RajaOngkir
             if (isset($response['rajaongkir']['results'][0]['costs'])) {
                 $costs = $response['rajaongkir']['results'][0]['costs'];
-                $frozenCosts = [];
-                
-                foreach ($costs as $cost) {
-                    // Cari service YES atau yang estimasinya 1 hari
-                    if (str_contains(strtoupper($cost['service']), 'YES') || 
-                        str_contains($cost['cost'][0]['etd'] ?? '', '1-1')) {
-                        
-                        $cost['service'] = 'Frozen (JNE YES)';
-                        $cost['description'] = 'Layanan Beku (1 Hari Sampai)';
-                        $frozenCosts[] = $cost;
-                    }
-                }
+                $frozenCosts = $this->filterFrozenCosts($costs);
 
                 if (empty($frozenCosts)) {
-                    // Jika tidak ada YES, mungkin return empty atau handling khusus
-                    // Opsional: return semua tapi kasih warning? 
-                    // Lebih aman return empty biar user tau tidak support
                     $response['rajaongkir']['results'][0]['costs'] = [];
                     $response['meta']['message'] = 'Layanan Frozen tidak tersedia untuk rute ini.';
                 } else {
@@ -114,6 +101,20 @@ class CheckoutController extends Controller
                     $response['rajaongkir']['results'][0]['code'] = 'frozen';
                     $response['rajaongkir']['results'][0]['name'] = 'Frozen Service';
                 }
+            } 
+            // Handle Structure 2: Komerce (data.data.results) or similar
+            elseif (isset($response['data']['results'][0]['costs'])) {
+                 $costs = $response['data']['results'][0]['costs'];
+                 $frozenCosts = $this->filterFrozenCosts($costs);
+
+                 if (empty($frozenCosts)) {
+                    $response['data']['results'][0]['costs'] = [];
+                    $response['meta']['message'] = 'Layanan Frozen tidak tersedia untuk rute ini.';
+                 } else {
+                    $response['data']['results'][0]['costs'] = $frozenCosts;
+                    $response['data']['results'][0]['code'] = 'frozen';
+                    $response['data']['results'][0]['name'] = 'Frozen Service';
+                 }
             }
             
             return $response;
@@ -127,6 +128,22 @@ class CheckoutController extends Controller
         );
 
         return $response;
+    }
+
+    private function filterFrozenCosts($costs)
+    {
+        $frozenCosts = [];
+        foreach ($costs as $cost) {
+            // Cari service YES atau yang estimasinya 1 hari
+            if (str_contains(strtoupper($cost['service']), 'YES') || 
+                str_contains($cost['cost'][0]['etd'] ?? '', '1-1')) {
+                
+                $cost['service'] = 'Frozen (JNE YES)';
+                $cost['description'] = 'Layanan Beku (1 Hari Sampai)';
+                $frozenCosts[] = $cost;
+            }
+        }
+        return $frozenCosts;
     }
 
     private function calculateAntarTokoCost($destinationName)
