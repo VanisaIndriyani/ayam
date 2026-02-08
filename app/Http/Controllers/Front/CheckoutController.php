@@ -92,6 +92,48 @@ class CheckoutController extends Controller
                 'jne'
             );
 
+            // CHECK FOR API LIMIT ERROR AND PROVIDE FALLBACK (DEV MODE)
+            $isError = false;
+            $errorMsg = '';
+            
+            if (isset($response['rajaongkir']['status']['code']) && $response['rajaongkir']['status']['code'] >= 400) {
+                $isError = true;
+                $errorMsg = $response['rajaongkir']['status']['description'] ?? 'Unknown Error';
+            } elseif (isset($response['meta']['code']) && $response['meta']['code'] >= 400) {
+                $isError = true;
+                $errorMsg = $response['meta']['message'] ?? 'Unknown Error';
+            }
+
+            if ($isError) {
+                // Fallback Mock for Development/Testing when API Limit is hit
+                // Only if error contains "limit" or we decide to always fallback on error
+                if (str_contains(strtolower($errorMsg), 'limit')) {
+                    return response()->json([
+                        'rajaongkir' => [
+                            'results' => [
+                                [
+                                    'code' => 'frozen',
+                                    'name' => 'Frozen Service',
+                                    'costs' => [
+                                        [
+                                            'service' => 'Frozen (JNE YES)',
+                                            'description' => 'Layanan Beku (Fallback Mode)',
+                                            'cost' => [
+                                                [
+                                                    'value' => 20000, // Fixed fallback price
+                                                    'etd' => '1-1',
+                                                    'note' => 'API Limit Habis (Estimasi)'
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]);
+                }
+            }
+
             // Manipulasi response untuk hanya ambil YES dan ganti nama jadi Frozen
             // Handle Structure 1: Standard RajaOngkir
             if (isset($response['rajaongkir']['results'][0]['costs'])) {
