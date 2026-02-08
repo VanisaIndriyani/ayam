@@ -207,20 +207,28 @@ class CheckoutController extends Controller
             $searchQueries[] = $subdistrict;
         }
         
-        // 3. City + Province (Fallback)
+        // 3. City + Province (Fallback - Index 1)
         if ($city) {
-            // Remove "KOTA" or "KABUPATEN" prefix if present for better matching
             $cleanCity = str_ireplace(['KOTA ', 'KABUPATEN '], '', $city);
-            
             if ($province) {
                 $searchQueries[] = "$cleanCity, $province";
             }
             $searchQueries[] = $cleanCity;
         }
 
+        // 4. City + Province (Fallback - Index 2)
+        // Often Index 2 is the actual City/Regency name in some formats
+        if ($type && $type !== '-') {
+             $cleanType = str_ireplace(['KOTA ', 'KABUPATEN '], '', $type);
+             if ($province) {
+                 $searchQueries[] = "$cleanType, $province";
+             }
+             $searchQueries[] = $cleanType;
+        }
+
         foreach ($searchQueries as $query) {
             try {
-                $response = Http::timeout(5)->withHeaders([
+                $response = Http::timeout(10)->withHeaders([
                     'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'
                 ])->get('https://nominatim.openstreetmap.org/search', [
                     'q' => $query,
