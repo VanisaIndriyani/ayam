@@ -93,6 +93,10 @@ class CartController extends Controller
     {
         $item->delete();
 
+        if (request()->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Produk dihapus dari keranjang.']);
+        }
+
         return redirect()->back()->with('success', 'Produk dihapus dari keranjang.');
     }
 }
