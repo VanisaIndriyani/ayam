@@ -253,12 +253,9 @@
                             </div>
                             <div class="d-flex align-items-center">
                                 <small class="text-muted me-2">x {{ $item->quantity }}</small>
-                                <form action="{{ route('cart.remove', $item->id) }}" method="POST" class="d-inline">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-link text-danger p-0" onclick="return confirm('Hapus item ini?')">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
+                                <button type="button" class="btn btn-sm btn-link text-danger p-0" onclick="removeItem('{{ route('cart.remove', $item->id) }}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                             </div>
                         </div>
                         <div class="fw-bold">
@@ -354,6 +351,29 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
+    function removeItem(url) {
+        if(!confirm('Hapus item ini?')) return;
+
+        fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Gagal menghapus item.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat menghapus item.');
+        });
+    }
+
     const courierSelect = document.getElementById('courier');
     const serviceSelect = document.getElementById('service');
     // Using plain JS variable for initial subtotal
