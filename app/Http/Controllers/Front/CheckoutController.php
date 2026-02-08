@@ -66,8 +66,12 @@ class CheckoutController extends Controller
                  ['id' => '419', 'label' => 'Semarang, Jawa Tengah'],
                  ['id' => '256', 'label' => 'Malang, Jawa Timur'],
                  ['id' => '114', 'label' => 'Denpasar, Bali'],
-                 ['id' => '278', 'label' => 'Medan, Sumatera Utara'],
-             ];
+                ['id' => '278', 'label' => 'Medan, Sumatera Utara'],
+                ['id' => '21',  'label' => 'Bandar Lampung, Lampung'],
+                ['id' => '327', 'label' => 'Palembang, Sumatera Selatan'],
+                ['id' => '254', 'label' => 'Makassar, Sulawesi Selatan'],
+                ['id' => '17',  'label' => 'Balikpapan, Kalimantan Timur'],
+            ];
 
              // Filter based on user query to simulate search
              $results = array_filter($fallbackCities, function($item) use ($query) {
