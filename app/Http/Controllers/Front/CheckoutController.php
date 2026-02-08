@@ -258,12 +258,34 @@ class CheckoutController extends Controller
                                 'name' => strtoupper($request->courier),
                                 'costs' => [
                                     [
+                                        'service' => 'HEMAT',
+                                        'description' => 'Layanan Hemat (Fallback Mode)',
+                                        'cost' => [
+                                            [
+                                                'value' => 12000, 
+                                                'etd' => '4-6',
+                                                'note' => 'API Limit Habis (Estimasi)'
+                                            ]
+                                        ]
+                                    ],
+                                    [
                                         'service' => 'REG',
                                         'description' => 'Layanan Reguler (Fallback Mode)',
                                         'cost' => [
                                             [
                                                 'value' => 18000, 
                                                 'etd' => '2-3',
+                                                'note' => 'API Limit Habis (Estimasi)'
+                                            ]
+                                        ]
+                                    ],
+                                    [
+                                        'service' => 'FAST/YES',
+                                        'description' => 'Layanan Cepat (Fallback Mode)',
+                                        'cost' => [
+                                            [
+                                                'value' => 30000, 
+                                                'etd' => '1-1',
                                                 'note' => 'API Limit Habis (Estimasi)'
                                             ]
                                         ]
