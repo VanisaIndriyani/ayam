@@ -247,8 +247,8 @@ class CheckoutController extends Controller
              $searchQueries[] = $cleanType;
         }
 
-        // Limit queries to top 6 to ensure fallbacks are included
-        $searchQueries = array_slice(array_unique($searchQueries), 0, 6);
+        // Limit queries to top 8 to ensure all fallbacks are included
+        $searchQueries = array_slice(array_unique($searchQueries), 0, 8);
         
         $resultCoords = null;
 
@@ -265,7 +265,8 @@ class CheckoutController extends Controller
                         ->get('https://nominatim.openstreetmap.org/search', [
                             'q' => $query,
                             'format' => 'json',
-                            'limit' => 1
+                            'limit' => 1,
+                            'addressdetails' => 1
                         ]);
                 }
                 return $requests;
@@ -291,8 +292,14 @@ class CheckoutController extends Controller
         if (!$resultCoords) {
              foreach ($searchQueries as $query) {
                  try {
+                     // Add small delay to avoid rate limiting (429)
+                     usleep(300000); // 0.3s delay
+
                      $response = Http::timeout(5)
-                         ->withHeaders(['User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'])
+                         ->withHeaders([
+                             'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)',
+                             'Referer' => 'https://bohrifarm.com'
+                         ])
                          ->get('https://nominatim.openstreetmap.org/search', [
                              'q' => $query,
                              'format' => 'json',
