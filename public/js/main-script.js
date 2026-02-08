@@ -28,8 +28,11 @@
      const descBox = document.getElementById('product-description');
      const priceBox = document.getElementById('product-price');
      const orderBtn = document.getElementById('order-btn');
+    
+    // Store original text for reset on page show (bfcache fix)
+    if (orderBtn) orderBtn.dataset.originalText = orderBtn.innerText;
 
-     if (cards.length === 0) return;
+    if (cards.length === 0) return;
 
      // Clone for looping
      const firstClone = cards[0].cloneNode(true);
@@ -176,10 +179,10 @@
          }
 
          orderBtn.disabled = true;
-         const originalText = orderBtn.innerText;
-         orderBtn.innerText = 'Processing...';
+        // const originalText = orderBtn.innerText; 
+        orderBtn.innerText = 'Processing...';
 
-         try {
+        try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
             
             // ROBUST BASE URL DETECTION
@@ -220,21 +223,31 @@
                      window.location.href = `${baseUrl}/checkout`;
                 }
             } else {
-                 alert(data.message || 'Gagal menambahkan ke keranjang');
-                 orderBtn.disabled = false;
-                 orderBtn.innerText = originalText;
-             }
-         } catch (error) {
-             console.error('Error:', error);
-             alert('Terjadi kesalahan. Silakan coba lagi.');
-             orderBtn.disabled = false;
-             orderBtn.innerText = originalText;
-         }
+                alert(data.message || 'Gagal menambahkan ke keranjang');
+                orderBtn.disabled = false;
+                orderBtn.innerText = orderBtn.dataset.originalText;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan. Silakan coba lagi.');
+            orderBtn.disabled = false;
+            orderBtn.innerText = orderBtn.dataset.originalText;
+        }
      });
 
      window.addEventListener('load', () => update(false));
-     window.addEventListener('resize', () => update(false));
- })();
+    window.addEventListener('resize', () => update(false));
+
+    // Fix: Reset button state when navigating back (bfcache)
+    window.addEventListener('pageshow', (event) => {
+        if (orderBtn) {
+            orderBtn.disabled = false;
+            if (orderBtn.dataset.originalText) {
+                orderBtn.innerText = orderBtn.dataset.originalText;
+            }
+        }
+    });
+})();
 
  //efek active
  document.addEventListener("DOMContentLoaded", function() {
