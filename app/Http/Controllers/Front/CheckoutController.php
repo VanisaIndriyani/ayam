@@ -230,8 +230,8 @@ class CheckoutController extends Controller
              $searchQueries[] = $cleanType;
         }
 
-        // Limit queries to top 3 most relevant
-        $searchQueries = array_slice(array_unique($searchQueries), 0, 3);
+        // Limit queries to top 6 to ensure fallbacks are included
+        $searchQueries = array_slice(array_unique($searchQueries), 0, 6);
         
         $resultCoords = null;
 
@@ -241,7 +241,10 @@ class CheckoutController extends Controller
                 $requests = [];
                 foreach ($searchQueries as $query) {
                     $requests[] = $pool->timeout(5)
-                        ->withHeaders(['User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'])
+                        ->withHeaders([
+                            'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)',
+                            'Referer' => 'https://bohrifarm.com'
+                        ])
                         ->get('https://nominatim.openstreetmap.org/search', [
                             'q' => $query,
                             'format' => 'json',
