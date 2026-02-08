@@ -77,6 +77,48 @@ class CheckoutController extends Controller
             $origin = 152; 
         }
 
+        // Handle Frozen (Combined JNE YES)
+        if ($request->courier === 'frozen') {
+            // Kita gunakan JNE sebagai basis, lalu filter service YES
+            $response = $rajaOngkir->cost(
+                $origin,
+                $request->destination,
+                $weight,
+                'jne'
+            );
+
+            // Manipulasi response untuk hanya ambil YES dan ganti nama jadi Frozen
+            if (isset($response['rajaongkir']['results'][0]['costs'])) {
+                $costs = $response['rajaongkir']['results'][0]['costs'];
+                $frozenCosts = [];
+                
+                foreach ($costs as $cost) {
+                    // Cari service YES atau yang estimasinya 1 hari
+                    if (str_contains(strtoupper($cost['service']), 'YES') || 
+                        str_contains($cost['cost'][0]['etd'] ?? '', '1-1')) {
+                        
+                        $cost['service'] = 'Frozen (JNE YES)';
+                        $cost['description'] = 'Layanan Beku (1 Hari Sampai)';
+                        $frozenCosts[] = $cost;
+                    }
+                }
+
+                if (empty($frozenCosts)) {
+                    // Jika tidak ada YES, mungkin return empty atau handling khusus
+                    // Opsional: return semua tapi kasih warning? 
+                    // Lebih aman return empty biar user tau tidak support
+                    $response['rajaongkir']['results'][0]['costs'] = [];
+                    $response['meta']['message'] = 'Layanan Frozen tidak tersedia untuk rute ini.';
+                } else {
+                    $response['rajaongkir']['results'][0]['costs'] = $frozenCosts;
+                    $response['rajaongkir']['results'][0]['code'] = 'frozen';
+                    $response['rajaongkir']['results'][0]['name'] = 'Frozen Service';
+                }
+            }
+            
+            return $response;
+        }
+
         $response = $rajaOngkir->cost(
             $origin,
             $request->destination,
@@ -241,7 +283,7 @@ class CheckoutController extends Controller
             'shipping_address' => 'required',
             'shipping_city' => 'required',
             'courier' => 'required',
-            'service' => 'required_unless:courier,manual',
+            'service' => 'required_unless:courier,ambil_sendiri',
             'shipping_cost' => 'required|numeric'
         ], [
             'shipping_name.required' => 'Nama penerima wajib diisi.',

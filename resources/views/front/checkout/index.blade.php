@@ -200,6 +200,17 @@
                             <option value="jnt">J&T</option>
                             <option value="antar_toko">Antar Toko (Rp 3.000/km)</option>
                             <option value="ambil_sendiri">Ambil Sendiri</option>
+
+                            @php
+                                // Cek apakah ada ayam potong di keranjang
+                                $hasFrozenProduct = $cart->items->contains(function($item) { 
+                                    return stripos($item->product->name, 'Potong') !== false; 
+                                });
+                            @endphp
+
+                            @if($hasFrozenProduct)
+                                <option value="frozen">Frozen (JNE YES)</option>
+                            @endif
                         </select>
                     </div>
 
