@@ -141,11 +141,19 @@ class CheckoutController extends Controller
                      }
                  }
 
+                 // Sort by price (cheapest first) to handle duplicates
+                 usort($frozenCosts, function($a, $b) {
+                     $priceA = $a['price'] ?? $a['tariff'] ?? $a['cost'] ?? $a['value'] ?? 999999999;
+                     $priceB = $b['price'] ?? $b['tariff'] ?? $b['cost'] ?? $b['value'] ?? 999999999;
+                     return $priceA - $priceB;
+                 });
+
                  if (empty($frozenCosts)) {
                     $response['data'] = [];
                     $response['meta']['message'] = 'Layanan Frozen tidak tersedia untuk rute ini.';
                  } else {
-                    $response['data'] = $frozenCosts;
+                    // Take only the cheapest one
+                    $response['data'] = [$frozenCosts[0]];
                  }
             }
             
@@ -175,7 +183,16 @@ class CheckoutController extends Controller
                 $frozenCosts[] = $cost;
             }
         }
-        return $frozenCosts;
+
+        // Sort by price (cheapest first)
+        usort($frozenCosts, function($a, $b) {
+            $priceA = $a['cost'][0]['value'] ?? 999999999;
+            $priceB = $b['cost'][0]['value'] ?? 999999999;
+            return $priceA - $priceB;
+        });
+
+        // Return only the cheapest one (if any exist)
+        return !empty($frozenCosts) ? [$frozenCosts[0]] : [];
     }
 
     private function getCoordinates($destinationName)
