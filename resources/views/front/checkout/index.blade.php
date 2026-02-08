@@ -507,7 +507,14 @@
 
         updateTotals(0); // reset cost to 0 while loading
 
-        if (!destination || !courier) return;
+        if (!destination) {
+             serviceSelect.innerHTML = '<option value="">Mohon pilih Kota Tujuan dulu</option>';
+             // Optional: focus to destination search if they changed courier but no destination
+             // $('#destination_search').select2('open'); 
+             return;
+        }
+
+        if (!courier) return;
 
         serviceSelect.innerHTML = '<option value="">Sedang mencari ongkir...</option>';
         serviceSelect.disabled = true;
