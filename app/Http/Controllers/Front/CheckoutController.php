@@ -182,88 +182,120 @@ class CheckoutController extends Controller
     {
         if (!$destinationName) return null;
 
-        // Caching Key based on destination name
-        $cacheKey = 'geo_' . md5(strtolower(trim($destinationName)));
+        // Caching Key based on destination name (v2 to invalidate potential bad cache)
+        $cacheKey = 'geo_v2_' . md5(strtolower(trim($destinationName)));
         
-        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 60 * 24 * 7, function () use ($destinationName) {
+        if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            return \Illuminate\Support\Facades\Cache::get($cacheKey);
+        }
             
-            // Clean up destination name
-            // Format example: "-, BANDUNG, BANDUNG, JAWA BARAT, 40614"
-            $parts = array_map('trim', explode(',', $destinationName));
-            $searchQueries = [];
-            
-            // 1. Full string (only if it doesn't start with -)
-            if (!str_starts_with($destinationName, '-')) {
-                $searchQueries[] = $destinationName;
-            }
+        // Clean up destination name
+        // Format example: "-, BANDUNG, BANDUNG, JAWA BARAT, 40614"
+        $parts = array_map('trim', explode(',', $destinationName));
+        $searchQueries = [];
+        
+        // 1. Full string (only if it doesn't start with -)
+        if (!str_starts_with($destinationName, '-')) {
+            $searchQueries[] = $destinationName;
+        }
 
-            $subdistrict = $parts[0] ?? '';
-            $city = $parts[1] ?? '';
-            $type = $parts[2] ?? ''; // KABUPATEN / KOTA
-            $province = $parts[3] ?? '';
-            
-            // 2. Subdistrict + City
-            if ($subdistrict && $subdistrict !== '-') {
-                if ($city) {
-                    $searchQueries[] = "$subdistrict, $city";
-                }
-                $searchQueries[] = $subdistrict;
-            }
-            
-            // 3. City + Province (Fallback - Index 1)
+        $subdistrict = $parts[0] ?? '';
+        $city = $parts[1] ?? '';
+        $type = $parts[2] ?? ''; // KABUPATEN / KOTA
+        $province = $parts[3] ?? '';
+        
+        // 2. Subdistrict + City
+        if ($subdistrict && $subdistrict !== '-') {
             if ($city) {
-                $cleanCity = str_ireplace(['KOTA ', 'KABUPATEN '], '', $city);
-                if ($province) {
-                    $searchQueries[] = "$cleanCity, $province";
+                $searchQueries[] = "$subdistrict, $city";
+            }
+            $searchQueries[] = $subdistrict;
+        }
+        
+        // 3. City + Province (Fallback - Index 1)
+        if ($city) {
+            $cleanCity = str_ireplace(['KOTA ', 'KABUPATEN '], '', $city);
+            if ($province) {
+                $searchQueries[] = "$cleanCity, $province";
+            }
+            $searchQueries[] = $cleanCity;
+        }
+
+        // 4. City + Province (Fallback - Index 2)
+        if ($type && $type !== '-') {
+             $cleanType = str_ireplace(['KOTA ', 'KABUPATEN '], '', $type);
+             if ($province) {
+                 $searchQueries[] = "$cleanType, $province";
+             }
+             $searchQueries[] = $cleanType;
+        }
+
+        // Limit queries to top 3 most relevant
+        $searchQueries = array_slice(array_unique($searchQueries), 0, 3);
+        
+        $resultCoords = null;
+
+        // Use Http Pool for Parallel Execution (Much Faster)
+        try {
+            $responses = Http::pool(function ($pool) use ($searchQueries) {
+                $requests = [];
+                foreach ($searchQueries as $query) {
+                    $requests[] = $pool->timeout(5)
+                        ->withHeaders(['User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'])
+                        ->get('https://nominatim.openstreetmap.org/search', [
+                            'q' => $query,
+                            'format' => 'json',
+                            'limit' => 1
+                        ]);
                 }
-                $searchQueries[] = $cleanCity;
-            }
+                return $requests;
+            });
 
-            // 4. City + Province (Fallback - Index 2)
-            if ($type && $type !== '-') {
-                 $cleanType = str_ireplace(['KOTA ', 'KABUPATEN '], '', $type);
-                 if ($province) {
-                     $searchQueries[] = "$cleanType, $province";
-                 }
-                 $searchQueries[] = $cleanType;
-            }
-
-            // Limit queries to top 3 most relevant to avoid spamming too much if list is long
-            $searchQueries = array_slice(array_unique($searchQueries), 0, 3);
-            
-            // Use Http Pool for Parallel Execution (Much Faster)
-            try {
-                $responses = Http::pool(function ($pool) use ($searchQueries) {
-                    $requests = [];
-                    foreach ($searchQueries as $query) {
-                        $requests[] = $pool->timeout(4) // Fast timeout 4s
-                            ->withHeaders(['User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'])
-                            ->get('https://nominatim.openstreetmap.org/search', [
-                                'q' => $query,
-                                'format' => 'json',
-                                'limit' => 1
-                            ]);
-                    }
-                    return $requests;
-                });
-
-                foreach ($responses as $response) {
-                    if ($response->ok()) {
-                        $result = $response->json();
-                        if (!empty($result)) {
-                            return [
-                                'lat' => $result[0]['lat'],
-                                'lon' => $result[0]['lon']
-                            ];
-                        }
+            foreach ($responses as $response) {
+                if ($response instanceof \Illuminate\Http\Client\Response && $response->ok()) {
+                    $result = $response->json();
+                    if (!empty($result)) {
+                        $resultCoords = [
+                            'lat' => $result[0]['lat'],
+                            'lon' => $result[0]['lon']
+                        ];
+                        break;
                     }
                 }
-            } catch (\Exception $e) {
-                // Fallback to sequential if pool fails (unlikely)
             }
+        } catch (\Exception $e) {
+            // Pool failed, proceed to sequential fallback
+        }
 
-            return null;
-        });
+        // Fallback to sequential if pool didn't find anything or failed
+        if (!$resultCoords) {
+             foreach ($searchQueries as $query) {
+                 try {
+                     $response = Http::timeout(5)
+                         ->withHeaders(['User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'])
+                         ->get('https://nominatim.openstreetmap.org/search', [
+                             'q' => $query,
+                             'format' => 'json',
+                             'limit' => 1
+                         ]);
+                     
+                     if ($response->ok()) {
+                         $result = $response->json();
+                         if (!empty($result)) {
+                             $resultCoords = ['lat' => $result[0]['lat'], 'lon' => $result[0]['lon']];
+                             break;
+                         }
+                     }
+                 } catch (\Exception $e) { continue; }
+             }
+        }
+
+        // Only cache if we found a result
+        if ($resultCoords) {
+            \Illuminate\Support\Facades\Cache::put($cacheKey, $resultCoords, 60 * 24 * 7);
+        }
+
+        return $resultCoords;
     }
 
     private function calculateLalamoveCost($destinationName)
