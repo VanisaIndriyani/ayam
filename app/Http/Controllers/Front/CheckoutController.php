@@ -280,7 +280,7 @@ class CheckoutController extends Controller
             'shipping_postal_code' => $request->shipping_postal_code ?? '-',
 
             'courier' => $request->courier,
-            'service' => $request->service ?? 'Manual',
+            'service' => $request->service ?? 'Ambil Sendiri',
             'weight' => $cart->items->sum(fn($i) => $i->product->weight * $i->quantity),
 
             'ordered_at' => now(),

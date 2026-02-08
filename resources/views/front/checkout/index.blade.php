@@ -199,7 +199,7 @@
                             <option value="jne">JNE</option>
                             <option value="jnt">J&T</option>
                             <option value="antar_toko">Antar Toko (Rp 3.000/km)</option>
-                            <option value="manual">Kurir Manual</option>
+                            <option value="ambil_sendiri">Ambil Sendiri</option>
                         </select>
                     </div>
 
@@ -479,14 +479,15 @@
         serviceSelect.innerHTML = '<option value="">Pilih kota & kurir</option>';
         serviceSelect.disabled = true;
         
-        // Handle Manual Courier
-        if (courier === 'manual') {
-            if (manualCostContainer) manualCostContainer.classList.remove('d-none');
-            serviceSelect.innerHTML = '<option value="manual">Layanan Manual</option>';
-            serviceSelect.value = 'manual';
-            serviceSelect.disabled = true; // No service choice for manual, just flat manual service
+        // Handle Manual Courier (Ambil Sendiri)
+        if (courier === 'ambil_sendiri') {
+            // Hide manual cost input because it's free (0)
+            if (manualCostContainer) manualCostContainer.classList.add('d-none');
             
-            // Update totals using whatever is in the input
+            serviceSelect.innerHTML = '<option value="ambil_sendiri">Ambil Sendiri (Gratis)</option>';
+            serviceSelect.value = 'ambil_sendiri';
+            serviceSelect.disabled = true;
+            
             updateTotals();
             return;
         } else {
@@ -652,11 +653,8 @@
         
         const courier = courierSelect.value;
 
-        if (courier === 'manual') {
-            const val = parseInt(manualCostInput.value);
-            if (!isNaN(val) && val >= 0) {
-                cost = val;
-            }
+        if (courier === 'ambil_sendiri') {
+            cost = 0; // Ambil sendiri is free
         } else {
             if (explicitCost !== null) {
                 cost = explicitCost;
