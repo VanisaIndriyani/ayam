@@ -121,6 +121,33 @@ class CheckoutController extends Controller
                     $response['data']['results'][0]['name'] = 'Frozen Service';
                  }
             }
+            // Handle Structure 3: Komerce Flat Data (data is direct array of services)
+            elseif (isset($response['data']) && is_array($response['data'])) {
+                 $costs = $response['data'];
+                 $frozenCosts = [];
+
+                 foreach ($costs as $cost) {
+                     // Check service name (YES) or ETD (1 day)
+                     $service = strtoupper($cost['service'] ?? '');
+                     $etd = $cost['etd'] ?? '';
+                     
+                     if (str_contains($service, 'YES') || 
+                         str_contains($etd, '1-1') || 
+                         (str_contains($etd, '1') && !str_contains($etd, '-')) // Exact "1" day
+                     ) {
+                         $cost['service'] = 'Frozen (JNE YES)';
+                         $cost['description'] = 'Layanan Beku (1 Hari Sampai)';
+                         $frozenCosts[] = $cost;
+                     }
+                 }
+
+                 if (empty($frozenCosts)) {
+                    $response['data'] = [];
+                    $response['meta']['message'] = 'Layanan Frozen tidak tersedia untuk rute ini.';
+                 } else {
+                    $response['data'] = $frozenCosts;
+                 }
+            }
             
             return $response;
         }
