@@ -182,71 +182,88 @@ class CheckoutController extends Controller
     {
         if (!$destinationName) return null;
 
-        // Clean up destination name
-        // Format example: "-, BANDUNG, BANDUNG, JAWA BARAT, 40614"
-        // Format example: "COBLONG, KOTA BANDUNG, JAWA BARAT, 40132"
+        // Caching Key based on destination name
+        $cacheKey = 'geo_' . md5(strtolower(trim($destinationName)));
         
-        $parts = array_map('trim', explode(',', $destinationName));
-        $searchQueries = [];
-        
-        // 1. Full string (only if it doesn't start with -)
-        if (!str_starts_with($destinationName, '-')) {
-            $searchQueries[] = $destinationName;
-        }
-
-        $subdistrict = $parts[0] ?? '';
-        $city = $parts[1] ?? '';
-        $type = $parts[2] ?? ''; // KABUPATEN / KOTA
-        $province = $parts[3] ?? '';
-        
-        // 2. Subdistrict + City
-        if ($subdistrict && $subdistrict !== '-') {
-            if ($city) {
-                $searchQueries[] = "$subdistrict, $city";
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 60 * 24 * 7, function () use ($destinationName) {
+            
+            // Clean up destination name
+            // Format example: "-, BANDUNG, BANDUNG, JAWA BARAT, 40614"
+            $parts = array_map('trim', explode(',', $destinationName));
+            $searchQueries = [];
+            
+            // 1. Full string (only if it doesn't start with -)
+            if (!str_starts_with($destinationName, '-')) {
+                $searchQueries[] = $destinationName;
             }
-            $searchQueries[] = $subdistrict;
-        }
-        
-        // 3. City + Province (Fallback - Index 1)
-        if ($city) {
-            $cleanCity = str_ireplace(['KOTA ', 'KABUPATEN '], '', $city);
-            if ($province) {
-                $searchQueries[] = "$cleanCity, $province";
-            }
-            $searchQueries[] = $cleanCity;
-        }
 
-        // 4. City + Province (Fallback - Index 2)
-        // Often Index 2 is the actual City/Regency name in some formats
-        if ($type && $type !== '-') {
-             $cleanType = str_ireplace(['KOTA ', 'KABUPATEN '], '', $type);
-             if ($province) {
-                 $searchQueries[] = "$cleanType, $province";
-             }
-             $searchQueries[] = $cleanType;
-        }
-
-        foreach ($searchQueries as $query) {
-            try {
-                $response = Http::timeout(10)->withHeaders([
-                    'User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'
-                ])->get('https://nominatim.openstreetmap.org/search', [
-                    'q' => $query,
-                    'format' => 'json',
-                    'limit' => 1
-                ]);
-
-                $result = $response->json();
-                if (!empty($result)) {
-                    return [
-                        'lat' => $result[0]['lat'],
-                        'lon' => $result[0]['lon']
-                    ];
+            $subdistrict = $parts[0] ?? '';
+            $city = $parts[1] ?? '';
+            $type = $parts[2] ?? ''; // KABUPATEN / KOTA
+            $province = $parts[3] ?? '';
+            
+            // 2. Subdistrict + City
+            if ($subdistrict && $subdistrict !== '-') {
+                if ($city) {
+                    $searchQueries[] = "$subdistrict, $city";
                 }
-            } catch (\Exception $e) { continue; }
-        }
+                $searchQueries[] = $subdistrict;
+            }
+            
+            // 3. City + Province (Fallback - Index 1)
+            if ($city) {
+                $cleanCity = str_ireplace(['KOTA ', 'KABUPATEN '], '', $city);
+                if ($province) {
+                    $searchQueries[] = "$cleanCity, $province";
+                }
+                $searchQueries[] = $cleanCity;
+            }
 
-        return null;
+            // 4. City + Province (Fallback - Index 2)
+            if ($type && $type !== '-') {
+                 $cleanType = str_ireplace(['KOTA ', 'KABUPATEN '], '', $type);
+                 if ($province) {
+                     $searchQueries[] = "$cleanType, $province";
+                 }
+                 $searchQueries[] = $cleanType;
+            }
+
+            // Limit queries to top 3 most relevant to avoid spamming too much if list is long
+            $searchQueries = array_slice(array_unique($searchQueries), 0, 3);
+            
+            // Use Http Pool for Parallel Execution (Much Faster)
+            try {
+                $responses = Http::pool(function ($pool) use ($searchQueries) {
+                    $requests = [];
+                    foreach ($searchQueries as $query) {
+                        $requests[] = $pool->timeout(4) // Fast timeout 4s
+                            ->withHeaders(['User-Agent' => 'Bohrifarm/1.0 (bohrifarm@example.com)'])
+                            ->get('https://nominatim.openstreetmap.org/search', [
+                                'q' => $query,
+                                'format' => 'json',
+                                'limit' => 1
+                            ]);
+                    }
+                    return $requests;
+                });
+
+                foreach ($responses as $response) {
+                    if ($response->ok()) {
+                        $result = $response->json();
+                        if (!empty($result)) {
+                            return [
+                                'lat' => $result[0]['lat'],
+                                'lon' => $result[0]['lon']
+                            ];
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                // Fallback to sequential if pool fails (unlikely)
+            }
+
+            return null;
+        });
     }
 
     private function calculateLalamoveCost($destinationName)
