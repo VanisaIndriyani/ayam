@@ -197,8 +197,6 @@
                         <label class="form-label">Kurir</label>
                         <select id="courier" class="form-select">
                             <option value="jne">JNE</option>
-                            <option value="pos">POS Indonesia</option>
-                            <option value="tiki">TIKI</option>
                             <option value="ninja">Ninja Express</option>
                             <option value="jnt">J&T</option>
                             <option value="antar_toko">Antar Toko (Rp 3.000/km)</option>
