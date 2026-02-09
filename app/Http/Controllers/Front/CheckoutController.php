@@ -272,14 +272,14 @@ class CheckoutController extends Controller
             $origin = 152; 
         }
 
-        // Handle Frozen (Combined JNE YES)
+        // Handle Frozen (Combined Ninja Cold)
         if ($request->courier === 'frozen') {
-            // Kita gunakan JNE sebagai basis, lalu filter service YES
+            // Kita gunakan Ninja sebagai basis
             $response = $rajaOngkir->cost(
                 $origin,
                 $request->destination,
                 $weight,
-                'jne'
+                'ninja'
             );
 
             // CHECK FOR API LIMIT ERROR AND PROVIDE FALLBACK (DEV MODE)
@@ -306,12 +306,12 @@ class CheckoutController extends Controller
                                     'name' => 'Frozen Service',
                                     'costs' => [
                                         [
-                                            'service' => 'Frozen (JNE YES)',
-                                            'description' => 'Layanan Beku (Fallback Mode)',
+                                            'service' => 'Ninja Cold',
+                                            'description' => 'Layanan Beku (Ninja Express)',
                                             'cost' => [
                                                 [
-                                                    'value' => 20000, // Fixed fallback price
-                                                    'etd' => '1-1',
+                                                    'value' => 25000, // Fixed fallback price
+                                                    'etd' => '1-2',
                                                     'note' => 'API Limit Habis (Estimasi)'
                                                 ]
                                             ]
@@ -324,68 +324,59 @@ class CheckoutController extends Controller
                 }
             }
 
-            // Manipulasi response untuk hanya ambil YES dan ganti nama jadi Frozen
+            // Manipulasi response untuk rename service jadi Ninja Cold
             // Handle Structure 1: Standard RajaOngkir
             if (isset($response['rajaongkir']['results'][0]['costs'])) {
                 $costs = $response['rajaongkir']['results'][0]['costs'];
-                $frozenCosts = $this->filterFrozenCosts($costs);
-
-                if (empty($frozenCosts)) {
-                    $response['rajaongkir']['results'][0]['costs'] = [];
-                    $response['meta']['message'] = 'Layanan Frozen tidak tersedia untuk rute ini.';
-                } else {
-                    $response['rajaongkir']['results'][0]['costs'] = $frozenCosts;
+                
+                // Ambil service apapun dari Ninja, kita anggap itu bisa upgrade ke Cold
+                // Atau ambil yang paling mahal/cepat
+                if (!empty($costs)) {
+                    // Rename semua service Ninja jadi varian Cold atau ambil satu saja
+                    // Disini kita ambil service pertama (biasanya REG/STANDARD) dan rename
+                    $firstService = $costs[0];
+                    $firstService['service'] = 'Ninja Cold';
+                    $firstService['description'] = 'Layanan Pengiriman Beku';
+                    
+                    $response['rajaongkir']['results'][0]['costs'] = [$firstService];
                     $response['rajaongkir']['results'][0]['code'] = 'frozen';
-                    $response['rajaongkir']['results'][0]['name'] = 'Frozen Service';
+                    $response['rajaongkir']['results'][0]['name'] = 'Frozen Service (Ninja)';
+                } else {
+                     $response['rajaongkir']['results'][0]['costs'] = [];
+                     $response['meta']['message'] = 'Layanan Ninja tidak tersedia untuk rute ini.';
                 }
             } 
             // Handle Structure 2: Komerce (data.data.results) or similar
             elseif (isset($response['data']['results'][0]['costs'])) {
                  $costs = $response['data']['results'][0]['costs'];
-                 $frozenCosts = $this->filterFrozenCosts($costs);
+                 
+                 if (!empty($costs)) {
+                    $firstService = $costs[0];
+                    $firstService['service'] = 'Ninja Cold';
+                    $firstService['description'] = 'Layanan Pengiriman Beku';
 
-                 if (empty($frozenCosts)) {
-                    $response['data']['results'][0]['costs'] = [];
-                    $response['meta']['message'] = 'Layanan Frozen tidak tersedia untuk rute ini.';
-                 } else {
-                    $response['data']['results'][0]['costs'] = $frozenCosts;
+                    $response['data']['results'][0]['costs'] = [$firstService];
                     $response['data']['results'][0]['code'] = 'frozen';
-                    $response['data']['results'][0]['name'] = 'Frozen Service';
+                    $response['data']['results'][0]['name'] = 'Frozen Service (Ninja)';
+                 } else {
+                    $response['data']['results'][0]['costs'] = [];
+                    $response['meta']['message'] = 'Layanan Ninja tidak tersedia untuk rute ini.';
                  }
             }
             // Handle Structure 3: Komerce Flat Data (data is direct array of services)
             elseif (isset($response['data']) && is_array($response['data'])) {
                  $costs = $response['data'];
-                 $frozenCosts = [];
-
-                 foreach ($costs as $cost) {
-                     // Check service name (YES) or ETD (1 day)
-                     $service = strtoupper($cost['service'] ?? '');
-                     $etd = $cost['etd'] ?? '';
+                 
+                 if (!empty($costs)) {
+                     // Ambil yang pertama
+                     $firstService = $costs[0];
+                     $firstService['service'] = 'Ninja Cold';
+                     $firstService['description'] = 'Layanan Pengiriman Beku';
                      
-                     if (str_contains($service, 'YES') || 
-                         str_contains($etd, '1-1') || 
-                         (str_contains($etd, '1') && !str_contains($etd, '-')) // Exact "1" day
-                     ) {
-                         $cost['service'] = 'Frozen (JNE YES)';
-                         $cost['description'] = 'Layanan Beku (1 Hari Sampai)';
-                         $frozenCosts[] = $cost;
-                     }
-                 }
-
-                 // Sort by price (cheapest first) to handle duplicates
-                 usort($frozenCosts, function($a, $b) {
-                     $priceA = $a['price'] ?? $a['tariff'] ?? $a['cost'] ?? $a['value'] ?? 999999999;
-                     $priceB = $b['price'] ?? $b['tariff'] ?? $b['cost'] ?? $b['value'] ?? 999999999;
-                     return $priceA - $priceB;
-                 });
-
-                 if (empty($frozenCosts)) {
-                    $response['data'] = [];
-                    $response['meta']['message'] = 'Layanan Frozen tidak tersedia untuk rute ini.';
+                     $response['data'] = [$firstService];
                  } else {
-                    // Take only the cheapest one
-                    $response['data'] = [$frozenCosts[0]];
+                    $response['data'] = [];
+                    $response['meta']['message'] = 'Layanan Ninja tidak tersedia untuk rute ini.';
                  }
             }
             

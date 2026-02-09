@@ -197,6 +197,9 @@
                         <label class="form-label">Kurir</label>
                         <select id="courier" class="form-select">
                             <option value="jne">JNE</option>
+                            <option value="pos">POS Indonesia</option>
+                            <option value="tiki">TIKI</option>
+                            <option value="ninja">Ninja Express</option>
                             <option value="jnt">J&T</option>
                             <option value="antar_toko">Antar Toko (Rp 3.000/km)</option>
                             <option value="lalamove">Lalamove (Instan)</option>
@@ -210,7 +213,7 @@
                             @endphp
 
                             @if($hasFrozenProduct)
-                                <option value="frozen">Frozen (JNE YES)</option>
+                                <option value="frozen">Frozen (Ninja Cold)</option>
                             @endif
                         </select>
                     </div>
@@ -231,7 +234,7 @@
                                 <h6 class="fw-bold mb-1 text-primary">Info Pengiriman:</h6>
                                 <ul class="mb-0 ps-3 small text-muted">
                                     <li class="mb-2">Untuk pembelian banyak (ayam hidup), disarankan pilih <b>Kurir Lalamove</b> atau <b>Kurir Toko</b> (di antar dengan mobil pickup).</li>
-                                    <li>Untuk pembelian sedikit 1-10 ekor (ayam potong), disarankan menggunakan layanan <b>Frozen (JNE/J&T)</b>, karena kurir tersebut tidak menerima pengiriman ayam hidup.</li>
+                                    <li>Untuk pembelian sedikit 1-10 ekor (ayam potong), disarankan menggunakan layanan <b>Frozen (Ninja Cold)</b>, karena kurir tersebut memiliki layanan pendingin.</li>
                                 </ul>
                             </div>
                         </div>
