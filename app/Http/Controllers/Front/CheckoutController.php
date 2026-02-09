@@ -125,6 +125,40 @@ class CheckoutController extends Controller
                 ['id' => '92',  'label' => 'Boyolali, Jawa Tengah'],
                 ['id' => '400', 'label' => 'Salatiga, Jawa Tengah'],
 
+                // POPULAR KECAMATAN / ALIASES (Mapped to Parent City/Regency)
+                // JABODETABEK & JABAR
+                ['id' => '23',  'label' => 'Cikarang, Bekasi (Kabupaten), Jawa Barat'], // Cikarang is capital of Bekasi Regency
+                ['id' => '23',  'label' => 'Cikarang Barat, Bekasi, Jawa Barat'],
+                ['id' => '23',  'label' => 'Cikarang Utara, Bekasi, Jawa Barat'],
+                ['id' => '23',  'label' => 'Cikarang Selatan, Bekasi, Jawa Barat'],
+                ['id' => '23',  'label' => 'Cikarang Timur, Bekasi, Jawa Barat'],
+                ['id' => '23',  'label' => 'Cikarang Pusat, Bekasi, Jawa Barat'],
+                ['id' => '23',  'label' => 'Tambun, Bekasi, Jawa Barat'],
+                ['id' => '23',  'label' => 'Cibitung, Bekasi, Jawa Barat'],
+                ['id' => '174', 'label' => 'Cikampek, Karawang, Jawa Barat'],
+                ['id' => '115', 'label' => 'Cibubur, Jakarta Timur / Depok'],
+                ['id' => '456', 'label' => 'Ciputat, Tangerang Selatan, Banten'],
+                ['id' => '456', 'label' => 'Bintaro, Tangerang Selatan, Banten'],
+                ['id' => '456', 'label' => 'Serpong, Tangerang Selatan, Banten'],
+                ['id' => '456', 'label' => 'Pamulang, Tangerang Selatan, Banten'],
+                ['id' => '457', 'label' => 'Ciledug, Tangerang, Banten'],
+                ['id' => '155', 'label' => 'Kelapa Gading, Jakarta Utara, DKI Jakarta'],
+                ['id' => '155', 'label' => 'Pantai Indah Kapuk, Jakarta Utara, DKI Jakarta'],
+                ['id' => '155', 'label' => 'Pluit, Jakarta Utara, DKI Jakarta'],
+                ['id' => '153', 'label' => 'Kemang, Jakarta Selatan, DKI Jakarta'],
+                ['id' => '153', 'label' => 'Tebet, Jakarta Selatan, DKI Jakarta'],
+                ['id' => '152', 'label' => 'Menteng, Jakarta Pusat, DKI Jakarta'],
+                ['id' => '152', 'label' => 'Tanah Abang, Jakarta Pusat, DKI Jakarta'],
+                ['id' => '24',  'label' => 'Lembang, Bandung Barat, Jawa Barat'],
+                ['id' => '22',  'label' => 'Dago (Coblong), Bandung, Jawa Barat'],
+                ['id' => '22',  'label' => 'Buahbatu, Bandung, Jawa Barat'],
+                
+                // JATENG & JATIM & BALI
+                ['id' => '501', 'label' => 'Malioboro (Gedong Tengen), Yogyakarta'],
+                ['id' => '18',  'label' => 'Kuta, Badung, Bali'],
+                ['id' => '128', 'label' => 'Ubud, Gianyar, Bali'],
+                ['id' => '190', 'label' => 'Pare, Kediri, Jawa Timur'],
+
                 // JAWA TIMUR
                 ['id' => '444', 'label' => 'Surabaya, Jawa Timur'],
                 ['id' => '256', 'label' => 'Malang, Jawa Timur'],
