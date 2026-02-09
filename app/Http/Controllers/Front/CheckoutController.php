@@ -303,7 +303,7 @@ class CheckoutController extends Controller
                             'results' => [
                                 [
                                     'code' => 'frozen',
-                                    'name' => 'Frozen Service',
+                                    'name' => 'Pengiriman Frozen',
                                     'costs' => [
                                         [
                                             'service' => 'Ninja Cold',
@@ -340,7 +340,7 @@ class CheckoutController extends Controller
                     
                     $response['rajaongkir']['results'][0]['costs'] = [$firstService];
                     $response['rajaongkir']['results'][0]['code'] = 'frozen';
-                    $response['rajaongkir']['results'][0]['name'] = 'Frozen Service (Ninja)';
+                    $response['rajaongkir']['results'][0]['name'] = 'Pengiriman Frozen';
                 } else {
                      $response['rajaongkir']['results'][0]['costs'] = [];
                      $response['meta']['message'] = 'Layanan Ninja tidak tersedia untuk rute ini.';
@@ -356,9 +356,9 @@ class CheckoutController extends Controller
                     $firstService['description'] = 'Layanan Pengiriman Beku';
 
                     $response['data']['results'][0]['costs'] = [$firstService];
-                    $response['data']['results'][0]['code'] = 'frozen';
-                    $response['data']['results'][0]['name'] = 'Frozen Service (Ninja)';
-                 } else {
+                     $response['data']['results'][0]['code'] = 'frozen';
+                     $response['data']['results'][0]['name'] = 'Pengiriman Frozen';
+                  } else {
                     $response['data']['results'][0]['costs'] = [];
                     $response['meta']['message'] = 'Layanan Ninja tidak tersedia untuk rute ini.';
                  }
