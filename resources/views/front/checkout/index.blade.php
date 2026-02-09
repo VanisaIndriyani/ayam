@@ -182,11 +182,11 @@
 
                     <!-- Location Search (Wrapper for Select2) -->
                     <div class="col-12">
-                        <label for="destination_search" class="form-label">Cari Kecamatan / Kota</label>
+                        <label for="destination_search" class="form-label">Cari Kota / Kabupaten</label>
                         <select class="form-select" id="destination_search" name="destination_search" style="width: 100%;">
                             <!-- Select2 will populate this -->
                         </select>
-                        <div class="form-text text-muted">Ketik nama kecamatan atau kota Anda (min. 3 huruf)</div>
+                        <div class="form-text text-muted">Ketik nama kota atau kabupaten Anda (min. 3 huruf)</div>
                         <!-- Hidden input to store standard city ID that controller expects -->
                         <input type="hidden" name="shipping_city" id="shipping_city" value="">
                     </div>
@@ -432,7 +432,7 @@
     $(document).ready(function() {
         $('#destination_search').select2({
             theme: 'bootstrap-5',
-            placeholder: 'Ketik Kecamatan / Kota tujuan...',
+            placeholder: 'Ketik Kota / Kabupaten tujuan...',
             minimumInputLength: 3,
             ajax: {
                 url: '{{ route("checkout.searchLocation") }}',
