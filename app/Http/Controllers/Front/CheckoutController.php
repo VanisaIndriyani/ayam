@@ -392,7 +392,7 @@ class CheckoutController extends Controller
             $request->courier
         );
 
-        // CLEANUP: Filter out Vehicle Shipping Services (JTR<150, etc)
+        // CLEANUP & FORMAT: Filter out Vehicle Shipping Services and Rename Services
         if (isset($response['rajaongkir']['results'][0]['costs'])) {
             $filteredCosts = [];
             foreach ($response['rajaongkir']['results'][0]['costs'] as $cost) {
@@ -400,6 +400,24 @@ class CheckoutController extends Controller
                 if (str_contains($cost['service'], '<') || str_contains($cost['service'], '>')) {
                     continue;
                 }
+                
+                // Format Descriptions
+                $svc = strtoupper($cost['service']);
+                if ($request->courier === 'jne') {
+                    if ($svc === 'OKE') $cost['description'] = 'Ekonomis';
+                    elseif ($svc === 'REG') $cost['description'] = 'Reguler';
+                    elseif ($svc === 'YES') $cost['description'] = 'Yakin Esok Sampai';
+                    elseif ($svc === 'SS' || $svc === 'SUPERSPEED') $cost['description'] = 'Kiriman Super Cepat';
+                    elseif ($svc === 'JTR') $cost['description'] = 'JNE Trucking (Kargo >10kg)';
+                } elseif ($request->courier === 'jnt') {
+                    if ($svc === 'EZ') $cost['description'] = 'Reguler (2-3 hari)';
+                    elseif (str_contains($svc, 'ECO')) $cost['description'] = 'Ekonomis (7-14 hari)';
+                    elseif (str_contains($svc, 'SUPER')) $cost['description'] = 'Kilat (1-2 hari)';
+                    elseif ($svc === 'DOC') $cost['description'] = 'Dokumen';
+                    elseif (str_contains($svc, 'CARGO')) $cost['description'] = 'Barang Besar';
+                    elseif ($svc === 'HBO' || str_contains($svc, 'HEMAT')) $cost['description'] = 'Paket Hemat';
+                }
+
                 $filteredCosts[] = $cost;
             }
             // Re-index array
@@ -410,6 +428,24 @@ class CheckoutController extends Controller
                 if (str_contains($cost['service'], '<') || str_contains($cost['service'], '>')) {
                     continue;
                 }
+                
+                // Format Descriptions (Same logic)
+                $svc = strtoupper($cost['service']);
+                if ($request->courier === 'jne') {
+                    if ($svc === 'OKE') $cost['description'] = 'Ekonomis';
+                    elseif ($svc === 'REG') $cost['description'] = 'Reguler';
+                    elseif ($svc === 'YES') $cost['description'] = 'Yakin Esok Sampai';
+                    elseif ($svc === 'SS' || $svc === 'SUPERSPEED') $cost['description'] = 'Kiriman Super Cepat';
+                    elseif ($svc === 'JTR') $cost['description'] = 'JNE Trucking (Kargo >10kg)';
+                } elseif ($request->courier === 'jnt') {
+                    if ($svc === 'EZ') $cost['description'] = 'Reguler (2-3 hari)';
+                    elseif (str_contains($svc, 'ECO')) $cost['description'] = 'Ekonomis (7-14 hari)';
+                    elseif (str_contains($svc, 'SUPER')) $cost['description'] = 'Kilat (1-2 hari)';
+                    elseif ($svc === 'DOC') $cost['description'] = 'Dokumen';
+                    elseif (str_contains($svc, 'CARGO')) $cost['description'] = 'Barang Besar';
+                    elseif ($svc === 'HBO' || str_contains($svc, 'HEMAT')) $cost['description'] = 'Paket Hemat';
+                }
+
                 $filteredCosts[] = $cost;
             }
             $response['data']['results'][0]['costs'] = array_values($filteredCosts);
@@ -467,7 +503,79 @@ class CheckoutController extends Controller
                     ]);
                 }
 
-                // Fallback for JNE/J&T/etc
+                // Fallback for J&T
+                if ($request->courier === 'jnt') {
+                     return response()->json([
+                        'rajaongkir' => [
+                            'results' => [
+                                [
+                                    'code' => 'jnt',
+                                    'name' => 'J&T EXPRESS',
+                                    'costs' => [
+                                        [
+                                            'service' => 'EZ',
+                                            'description' => 'Reguler (2-3 hari)',
+                                            'cost' => [['value' => 18000, 'etd' => '2-3', 'note' => 'Estimasi']]
+                                        ],
+                                        [
+                                            'service' => 'J&T Economy',
+                                            'description' => 'Ekonomis (7-14 hari)',
+                                            'cost' => [['value' => 12000, 'etd' => '7-14', 'note' => 'Estimasi']]
+                                        ],
+                                        [
+                                            'service' => 'J&T Super',
+                                            'description' => 'Kilat (1-2 hari)',
+                                            'cost' => [['value' => 28000, 'etd' => '1-2', 'note' => 'Estimasi']]
+                                        ],
+                                        [
+                                            'service' => 'J&T Cargo',
+                                            'description' => 'Barang Besar',
+                                            'cost' => [['value' => 45000, 'etd' => '3-5', 'note' => 'Min 10kg']]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                     ]);
+                }
+
+                // Fallback for JNE
+                if ($request->courier === 'jne') {
+                     return response()->json([
+                        'rajaongkir' => [
+                            'results' => [
+                                [
+                                    'code' => 'jne',
+                                    'name' => 'JNE',
+                                    'costs' => [
+                                        [
+                                            'service' => 'OKE',
+                                            'description' => 'Ekonomis',
+                                            'cost' => [['value' => 10000, 'etd' => '4-5', 'note' => 'Estimasi']]
+                                        ],
+                                        [
+                                            'service' => 'REG',
+                                            'description' => 'Reguler',
+                                            'cost' => [['value' => 15000, 'etd' => '2-3', 'note' => 'Estimasi']]
+                                        ],
+                                        [
+                                            'service' => 'YES',
+                                            'description' => 'Yakin Esok Sampai',
+                                            'cost' => [['value' => 24000, 'etd' => '1-1', 'note' => 'Estimasi']]
+                                        ],
+                                        [
+                                            'service' => 'JTR',
+                                            'description' => 'JNE Trucking (Kargo)',
+                                            'cost' => [['value' => 40000, 'etd' => '3-7', 'note' => 'Min 10kg']]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                     ]);
+                }
+
+                // Fallback for Others
                 return response()->json([
                     'rajaongkir' => [
                         'results' => [
