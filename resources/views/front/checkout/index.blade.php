@@ -553,12 +553,15 @@ k                             <option value="ninja">Ninja Express</option>
                     costs.forEach(c => {
                         const costVal = c.cost[0].value;
                         const etd = c.cost[0].etd;
+                        const note = c.cost[0].note; // Get note if exists
                         const serviceName = c.service;
                         
                         const opt = document.createElement('option');
                         opt.value = serviceName;
                         opt.dataset.cost = costVal;
-                        opt.textContent = `${serviceName} - ${formatRp(costVal)} (${etd ? etd + ' hari' : '-'})`;
+                        let text = `${serviceName} - ${formatRp(costVal)} (${etd ? etd + ' hari' : '-'})`;
+                        if (note) text += ` [${note}]`;
+                        opt.textContent = text;
                         serviceSelect.appendChild(opt);
                     });
                     serviceSelect.disabled = false;
@@ -573,12 +576,15 @@ k                             <option value="ninja">Ninja Express</option>
                      costs.forEach(c => {
                         const costVal = c.cost[0].value;
                         const etd = c.cost[0].etd;
+                        const note = c.cost[0].note; // Get note
                         const serviceName = c.service;
                         
                         const opt = document.createElement('option');
                         opt.value = serviceName;
                         opt.dataset.cost = costVal;
-                        opt.textContent = `${serviceName} - ${formatRp(costVal)} (${etd ? etd + ' hari' : '-'})`;
+                        let text = `${serviceName} - ${formatRp(costVal)} (${etd ? etd + ' hari' : '-'})`;
+                        if (note) text += ` [${note}]`;
+                        opt.textContent = text;
                         serviceSelect.appendChild(opt);
                     });
                      serviceSelect.disabled = false;
@@ -591,13 +597,16 @@ k                             <option value="ninja">Ninja Express</option>
                  data.data.forEach(c => {
                     const costVal = c.cost; // Direct value
                     const etd = c.etd;
+                    const note = c.note; // Get note
                     const serviceName = c.service;
                     const description = c.description || serviceName;
                     
                     const opt = document.createElement('option');
                     opt.value = serviceName;
                     opt.dataset.cost = costVal;
-                    opt.textContent = `${serviceName} (${description}) - ${formatRp(costVal)} (${etd ? etd.replace('day', 'hari') : '-'})`;
+                    let text = `${serviceName} - ${formatRp(costVal)} (${etd ? etd + ' hari' : '-'})`;
+                    if (note) text += ` [${note}]`;
+                    opt.textContent = text;
                     serviceSelect.appendChild(opt);
                  });
                  serviceSelect.disabled = false;
