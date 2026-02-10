@@ -269,9 +269,9 @@ class CheckoutController extends Controller
             $origin = trim($origin);
         }
 
-        // Fallback origin jika kosong (Default: Jakarta Pusat = 152)
+        // Fallback origin jika kosong (Default: Kota Bogor = 79)
         if (empty($origin)) {
-            $origin = 152; 
+            $origin = 79; 
         }
 
         // Handle Frozen (Combined Ninja Cold)
@@ -391,6 +391,32 @@ class CheckoutController extends Controller
             $weight,
             $request->courier
         );
+
+        // CLEANUP: Format Service Names (e.g. JTR variants)
+        if (isset($response['rajaongkir']['results'][0]['costs'])) {
+            foreach ($response['rajaongkir']['results'][0]['costs'] as &$cost) {
+                if (str_contains($cost['service'], 'JTR')) {
+                    // Normalize JTR names
+                    if (str_contains($cost['service'], '<') || str_contains($cost['service'], '>')) {
+                         $cost['service'] = 'JTR (Trucking)';
+                    }
+                    if (empty($cost['description'])) {
+                        $cost['description'] = 'Layanan Kargo (Min 10kg)';
+                    }
+                }
+            }
+        } elseif (isset($response['data']['results'][0]['costs'])) {
+             foreach ($response['data']['results'][0]['costs'] as &$cost) {
+                if (str_contains($cost['service'], 'JTR')) {
+                    if (str_contains($cost['service'], '<') || str_contains($cost['service'], '>')) {
+                         $cost['service'] = 'JTR (Trucking)';
+                    }
+                    if (empty($cost['description'])) {
+                        $cost['description'] = 'Layanan Kargo (Min 10kg)';
+                    }
+                }
+            }
+        }
 
         // CHECK FOR API LIMIT ERROR AND PROVIDE FALLBACK (Standard Courier)
         $isError = false;
