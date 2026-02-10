@@ -497,7 +497,7 @@ class CheckoutController extends Controller
             
             // Determine structure and extract existing costs
             $targetCosts = [];
-            $structureType = 0; // 0: none, 1: rajaongkir.results, 2: data.results
+            $structureType = 0; // 0: none, 1: rajaongkir.results, 2: data.results, 3: data (flat)
 
             if (isset($response['rajaongkir']['results'][0]['costs'])) {
                 $targetCosts = $response['rajaongkir']['results'][0]['costs'];
@@ -505,6 +505,10 @@ class CheckoutController extends Controller
             } elseif (isset($response['data']['results'][0]['costs'])) {
                 $targetCosts = $response['data']['results'][0]['costs'];
                 $structureType = 2;
+            } elseif (isset($response['data']) && is_array($response['data']) && !isset($response['data']['results'])) {
+                // Handle flat Komerce structure
+                $targetCosts = $response['data'];
+                $structureType = 3;
             }
 
             // Only proceed if we found a valid structure (meaning API returned success)
@@ -518,45 +522,77 @@ class CheckoutController extends Controller
                     $svc = strtoupper($c['service'] ?? '');
                     if ($svc === 'STANDARD' || $svc === 'REG') {
                         $standardFound = $c;
-                        $basePrice = $c['cost'][0]['value'] ?? 18000;
+                        // Handle price extraction based on structure
+                        if ($structureType === 3) {
+                            $basePrice = $c['cost'] ?? 18000;
+                        } else {
+                            $basePrice = $c['cost'][0]['value'] ?? 18000;
+                        }
                         break;
                     }
                 }
 
+                // Construct STANDARD entry
                 if ($standardFound) {
                     $standardFound['service'] = 'STANDARD';
                     $standardFound['description'] = 'Layanan Standar';
-                    // Ensure ETD exists
-                    if (empty($standardFound['cost'][0]['etd'])) {
-                        $standardFound['cost'][0]['etd'] = '2-3';
+                    
+                    if ($structureType === 3) {
+                        $standardFound['etd'] = $standardFound['etd'] ?? '2-3';
+                    } else {
+                        if (empty($standardFound['cost'][0]['etd'])) {
+                            $standardFound['cost'][0]['etd'] = '2-3';
+                        }
                     }
                     $newCosts[] = $standardFound;
                 } else {
-                     $newCosts[] = [
-                        'service' => 'STANDARD',
-                        'description' => 'Layanan Standar',
-                        'cost' => [['value' => $basePrice, 'etd' => '2-3', 'note' => 'Estimasi']]
-                    ];
+                    if ($structureType === 3) {
+                         $newCosts[] = [
+                            'service' => 'STANDARD',
+                            'description' => 'Layanan Standar',
+                            'cost' => $basePrice,
+                            'etd' => '2-3',
+                            'note' => 'Estimasi'
+                        ];
+                    } else {
+                         $newCosts[] = [
+                            'service' => 'STANDARD',
+                            'description' => 'Layanan Standar',
+                            'cost' => [['value' => $basePrice, 'etd' => '2-3', 'note' => 'Estimasi']]
+                        ];
+                    }
                 }
 
                 // 2. Ninja Cold (Custom Injection)
-                $newCosts[] = [
-                    'service' => 'Ninja Cold',
-                    'description' => 'Pengiriman Frozen',
-                    'cost' => [
-                        [
-                            'value' => $basePrice + 10000, 
-                            'etd' => '1-2', 
-                            'note' => 'Layanan Pendingin'
+                if ($structureType === 3) {
+                    $newCosts[] = [
+                        'service' => 'Ninja Cold',
+                        'description' => 'Pengiriman Frozen',
+                        'cost' => $basePrice + 10000,
+                        'etd' => '1-2',
+                        'note' => 'Layanan Pendingin'
+                    ];
+                } else {
+                    $newCosts[] = [
+                        'service' => 'Ninja Cold',
+                        'description' => 'Pengiriman Frozen',
+                        'cost' => [
+                            [
+                                'value' => $basePrice + 10000, 
+                                'etd' => '1-2', 
+                                'note' => 'Layanan Pendingin'
+                            ]
                         ]
-                    ]
-                ];
+                    ];
+                }
 
                 // Write back to the correct location
                 if ($structureType === 1) {
                     $response['rajaongkir']['results'][0]['costs'] = $newCosts;
                 } elseif ($structureType === 2) {
                     $response['data']['results'][0]['costs'] = $newCosts;
+                } elseif ($structureType === 3) {
+                    $response['data'] = $newCosts;
                 }
             }
         }
