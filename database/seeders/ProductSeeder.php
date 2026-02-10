@@ -75,6 +75,12 @@ class ProductSeeder extends Seeder
                 'weight' => 1000,
             ],
             [
+                'name' => 'Telur Ayam (Paket Hemat 500gr)',
+                'image' => 'images/telur.jpeg',
+                'price' => 13500,
+                'weight' => 500,
+            ],
+            [
                 'name' => 'Telur Ayam 15 kg (1 peti)',
                 'image' => 'images/satupeti.jpeg',
                 'price' => 390000,
@@ -85,6 +91,12 @@ class ProductSeeder extends Seeder
                 'image' => 'images/telurayamkampung.jpeg',
                 'price' => 1500,
                 'weight' => 50,
+            ],
+            [
+                'name' => 'Empan Ayam Petelur (1 kg)',
+                'image' => 'images/empanayam.jpeg',
+                'price' => 6000,
+                'weight' => 1000,
             ],
             [
                 'name' => 'Empan Ayam Petelur (10 kg)',
