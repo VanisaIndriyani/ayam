@@ -238,14 +238,17 @@ class CheckoutController extends Controller
             'courier' => 'required'
         ]);
 
+        $latitude = $request->input('latitude');
+        $longitude = $request->input('longitude');
+
         // Handle Antar Toko
         if ($request->courier === 'antar_toko') {
-            return $this->calculateAntarTokoCost($request->destination_name);
+            return $this->calculateAntarTokoCost($request->destination_name, $latitude, $longitude);
         }
 
         // Handle Lalamove
         if ($request->courier === 'lalamove') {
-            return $this->calculateLalamoveCost($request->destination_name);
+            return $this->calculateLalamoveCost($request->destination_name, $latitude, $longitude);
         }
 
         \Log::info("DEBUG SHIPPING: Start");
@@ -898,22 +901,28 @@ class CheckoutController extends Controller
         return $resultCoords;
     }
 
-    private function calculateLalamoveCost($destinationName)
+    private function calculateLalamoveCost($destinationName, $lat = null, $lng = null)
     {
         try {
             // 1. Koordinat Toko (Bogor - Alun-alun Kota Bogor sebagai titik tengah)
             $storeLat = -6.595038; 
             $storeLng = 106.793311;
 
-            // 2. Geocoding Destination
-            $coords = $this->getCoordinates($destinationName);
-            
-            if (!$coords) {
-                 throw new \Exception("Gagal menemukan lokasi: $destinationName");
-            }
+            $destLat = null;
+            $destLng = null;
 
-            $destLat = $coords['lat'];
-            $destLng = $coords['lon'];
+            // 2. Use provided coordinates or Geocoding
+            if ($lat && $lng) {
+                $destLat = $lat;
+                $destLng = $lng;
+            } else {
+                $coords = $this->getCoordinates($destinationName);
+                if (!$coords) {
+                     throw new \Exception("Gagal menemukan lokasi: $destinationName");
+                }
+                $destLat = $coords['lat'];
+                $destLng = $coords['lon'];
+            }
 
             // 3. Hitung Jarak (Haversine Formula)
             $earthRadius = 6371; 
@@ -945,6 +954,13 @@ class CheckoutController extends Controller
             $cost = ceil($cost / 500) * 500;
 
             return response()->json([
+                'meta' => [
+                    'code' => 200,
+                    'destination_coords' => [
+                        'lat' => $destLat,
+                        'lon' => $destLng
+                    ]
+                ],
                 'rajaongkir' => [
                     'results' => [
                         [
@@ -981,7 +997,7 @@ class CheckoutController extends Controller
         }
     }
 
-    private function calculateAntarTokoCost($destinationName)
+    private function calculateAntarTokoCost($destinationName, $lat = null, $lng = null)
     {
         try {
             // 1. Koordinat Toko (Bogor - Alun-alun Kota Bogor sebagai titik tengah)
@@ -989,15 +1005,21 @@ class CheckoutController extends Controller
             $storeLat = -6.595038; 
             $storeLng = 106.793311;
 
-            // 2. Geocoding Destination
-            $coords = $this->getCoordinates($destinationName);
-            
-            if (!$coords) {
-                 throw new \Exception("Gagal menemukan lokasi: $destinationName");
-            }
+            $destLat = null;
+            $destLng = null;
 
-            $destLat = $coords['lat'];
-            $destLng = $coords['lon'];
+            // 2. Use provided coordinates or Geocoding
+            if ($lat && $lng) {
+                $destLat = $lat;
+                $destLng = $lng;
+            } else {
+                $coords = $this->getCoordinates($destinationName);
+                if (!$coords) {
+                     throw new \Exception("Gagal menemukan lokasi: $destinationName");
+                }
+                $destLat = $coords['lat'];
+                $destLng = $coords['lon'];
+            }
 
             // 3. Hitung Jarak (Haversine Formula)
             $earthRadius = 6371; // km
@@ -1016,11 +1038,18 @@ class CheckoutController extends Controller
             $ratePerKm = 3000;
             $cost = ceil($distance) * $ratePerKm;
 
-            // Minimum cost (10k)
-            if ($cost < 10000) $cost = 10000;
+            // Minimum cost (3k - sesuai request user per km)
+            if ($cost < 3000) $cost = 3000;
 
             // 5. Return structure mirip RajaOngkir
             return response()->json([
+                'meta' => [
+                    'code' => 200,
+                    'destination_coords' => [
+                        'lat' => $destLat,
+                        'lon' => $destLng
+                    ]
+                ],
                 'rajaongkir' => [
                     'results' => [
                         [

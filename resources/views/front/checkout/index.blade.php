@@ -7,6 +7,7 @@
 @push('css')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 @endpush
 
 @section('content')
@@ -191,6 +192,15 @@
                         <input type="hidden" name="shipping_city" id="shipping_city" value="">
                     </div>
 
+                    <!-- MAP SECTION -->
+                    <div class="col-12">
+                        <label class="form-label">Titik Lokasi Pengiriman (Wajib untuk Kurir Toko / Lalamove)</label>
+                        <div id="map" class="rounded-3 border" style="height: 300px; z-index: 1;"></div>
+                        <div class="form-text text-muted"><i class="bi bi-geo-alt"></i> Geser pin merah ke lokasi tepat rumah Anda untuk akurasi ongkir.</div>
+                        <input type="hidden" name="latitude" id="latitude">
+                        <input type="hidden" name="longitude" id="longitude">
+                    </div>
+
                     <div class="col-12"><hr class="my-2"></div>
 
                     <div class="col-md-6 mb-2 mb-md-0"> <!-- Added margin bottom for mobile -->
@@ -365,7 +375,67 @@ k                             <option value="ninja">Ninja Express</option>
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
 <script>
+    // --- MAP INITIALIZATION ---
+    let map, marker;
+    // Default Center (Bogor)
+    const defaultLat = -6.595038;
+    const defaultLng = 106.793311;
+
+    function initMap() {
+        if (map) return; // Already initialized
+
+        map = L.map('map').setView([defaultLat, defaultLng], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Initial Marker
+        marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+        // Event: Drag End
+        marker.on('dragend', function(e) {
+            const latlng = marker.getLatLng();
+            updateCoordinates(latlng.lat, latlng.lng);
+        });
+
+        // Event: Map Click
+        map.on('click', function(e) {
+            marker.setLatLng(e.latlng);
+            updateCoordinates(e.latlng.lat, e.latlng.lng);
+        });
+
+        // Try to get user location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                map.setView([lat, lng], 15);
+                marker.setLatLng([lat, lng]);
+                updateCoordinates(lat, lng);
+            });
+        }
+    }
+
+    function updateCoordinates(lat, lng) {
+        document.getElementById('latitude').value = lat;
+        document.getElementById('longitude').value = lng;
+        
+        // If courier is Antar Toko / Lalamove, update cost immediately
+        const courier = document.getElementById('courier').value;
+        if (courier === 'antar_toko' || courier === 'lalamove') {
+            updateShippingCost();
+        }
+    }
+
+    // Initialize Map on Load
+    document.addEventListener('DOMContentLoaded', function() {
+        initMap();
+    });
+
     function removeItem(btn) {
         const url = btn.dataset.url;
         if (!url) {
@@ -523,6 +593,11 @@ k                             <option value="ninja">Ninja Express</option>
         
         try {
             console.log('Fetching shipping cost for:', { destination, courier, weight });
+            
+            // Get Coordinates
+            const lat = document.getElementById('latitude').value;
+            const lng = document.getElementById('longitude').value;
+
             const response = await fetch('{{ route("checkout.shippingCost") }}', {
                 method: 'POST',
                 headers: {
@@ -532,12 +607,36 @@ k                             <option value="ninja">Ninja Express</option>
                 body: JSON.stringify({ 
                     destination: destination, 
                     courier: courier,
-                    destination_name: selectedDestinationName // Send name for Antar Toko
+                    destination_name: selectedDestinationName, // Send name for Antar Toko
+                    latitude: lat,
+                    longitude: lng
                 })
             });
 
             const data = await response.json();
             console.log('Shipping cost response:', data);
+
+            // Update Map if coordinates returned (Auto-Center)
+            if (data.meta && data.meta.destination_coords) {
+                const dLat = parseFloat(data.meta.destination_coords.lat);
+                const dLon = parseFloat(data.meta.destination_coords.lon);
+                
+                if (!isNaN(dLat) && !isNaN(dLon) && map && marker) {
+                    const currentCenter = map.getCenter();
+                    const dist = Math.sqrt(Math.pow(currentCenter.lat - dLat, 2) + Math.pow(currentCenter.lng - dLon, 2));
+                    
+                    // Only move if distance is significant (prevent jitter on manual drag)
+                    if (dist > 0.0001) {
+                        console.log('Moving map to:', dLat, dLon);
+                        map.setView([dLat, dLon], 15);
+                        marker.setLatLng([dLat, dLon]);
+                        // Update inputs silently to match
+                        document.getElementById('latitude').value = dLat;
+                        document.getElementById('longitude').value = dLon;
+                    }
+                }
+            }
+
             serviceSelect.innerHTML = '<option value="">-- Pilih Layanan --</option>';
             
             // Komerce layout for cost might be slightly different or standard RajaOngkir
