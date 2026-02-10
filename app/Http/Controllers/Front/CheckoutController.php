@@ -392,30 +392,27 @@ class CheckoutController extends Controller
             $request->courier
         );
 
-        // CLEANUP: Format Service Names (e.g. JTR variants)
+        // CLEANUP: Filter out Vehicle Shipping Services (JTR<150, etc)
         if (isset($response['rajaongkir']['results'][0]['costs'])) {
-            foreach ($response['rajaongkir']['results'][0]['costs'] as &$cost) {
-                if (str_contains($cost['service'], 'JTR')) {
-                    // Normalize JTR names
-                    if (str_contains($cost['service'], '<') || str_contains($cost['service'], '>')) {
-                         $cost['service'] = 'JTR (Trucking)';
-                    }
-                    if (empty($cost['description'])) {
-                        $cost['description'] = 'Layanan Kargo (Min 10kg)';
-                    }
+            $filteredCosts = [];
+            foreach ($response['rajaongkir']['results'][0]['costs'] as $cost) {
+                // Skip vehicle shipping services (containing < or >)
+                if (str_contains($cost['service'], '<') || str_contains($cost['service'], '>')) {
+                    continue;
                 }
+                $filteredCosts[] = $cost;
             }
+            // Re-index array
+            $response['rajaongkir']['results'][0]['costs'] = array_values($filteredCosts);
         } elseif (isset($response['data']['results'][0]['costs'])) {
-             foreach ($response['data']['results'][0]['costs'] as &$cost) {
-                if (str_contains($cost['service'], 'JTR')) {
-                    if (str_contains($cost['service'], '<') || str_contains($cost['service'], '>')) {
-                         $cost['service'] = 'JTR (Trucking)';
-                    }
-                    if (empty($cost['description'])) {
-                        $cost['description'] = 'Layanan Kargo (Min 10kg)';
-                    }
+             $filteredCosts = [];
+             foreach ($response['data']['results'][0]['costs'] as $cost) {
+                if (str_contains($cost['service'], '<') || str_contains($cost['service'], '>')) {
+                    continue;
                 }
+                $filteredCosts[] = $cost;
             }
+            $response['data']['results'][0]['costs'] = array_values($filteredCosts);
         }
 
         // CHECK FOR API LIMIT ERROR AND PROVIDE FALLBACK (Standard Courier)
