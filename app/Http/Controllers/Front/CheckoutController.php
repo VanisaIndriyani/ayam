@@ -248,6 +248,8 @@ class CheckoutController extends Controller
             return $this->calculateLalamoveCost($request->destination_name);
         }
 
+        \Log::info("DEBUG SHIPPING: Start");
+        
         // total berat
         $weight = Cart::where('user_id', Auth::id())
             ->where('status', 'active')
@@ -255,7 +257,7 @@ class CheckoutController extends Controller
             ->items
             ->sum(fn($item) => $item->product->weight * $item->quantity);
 
-        \Log::info("Checkout Shipping Cost - Total Weight: {$weight} grams");
+        \Log::info("DEBUG SHIPPING: Weight = {$weight}");
 
         // Pastikan berat minimal 1 gram (API requirement)
         if ($weight <= 0) {
@@ -263,6 +265,7 @@ class CheckoutController extends Controller
         }
 
         $origin = config('services.rajaongkir.origin_id'); 
+        \Log::info("DEBUG SHIPPING: Config Origin = " . json_encode($origin));
 
         // Bersihkan nilai origin
         if (is_string($origin)) {
@@ -273,6 +276,9 @@ class CheckoutController extends Controller
         if (empty($origin)) {
             $origin = 79; 
         }
+        \Log::info("DEBUG SHIPPING: Final Origin = {$origin}");
+        \Log::info("DEBUG SHIPPING: Destination = {$request->destination}");
+        \Log::info("DEBUG SHIPPING: Courier = {$request->courier}");
 
         // Handle Frozen (Combined Ninja Cold)
         if ($request->courier === 'frozen') {
@@ -391,6 +397,8 @@ class CheckoutController extends Controller
             $weight,
             $request->courier
         );
+        
+        \Log::info("DEBUG SHIPPING: API Response Raw: " . json_encode($response));
 
         // CLEANUP & FORMAT: Filter out Vehicle Shipping Services and Rename Services
         if (isset($response['rajaongkir']['results'][0]['costs'])) {
@@ -398,6 +406,7 @@ class CheckoutController extends Controller
             foreach ($response['rajaongkir']['results'][0]['costs'] as $cost) {
                 // Skip vehicle shipping services (containing < or >)
                 if (str_contains($cost['service'], '<') || str_contains($cost['service'], '>')) {
+                    \Log::info("DEBUG SHIPPING: Skipped Service: " . $cost['service']);
                     continue;
                 }
                 
@@ -449,6 +458,38 @@ class CheckoutController extends Controller
                 $filteredCosts[] = $cost;
             }
             $response['data']['results'][0]['costs'] = array_values($filteredCosts);
+        } elseif (isset($response['data']) && is_array($response['data']) && !isset($response['data']['results'])) {
+             // Handle Flat Data Structure (Komerce)
+             $filteredCosts = [];
+             foreach ($response['data'] as $cost) {
+                // Skip vehicle shipping services
+                if (str_contains($cost['service'], '<') || str_contains($cost['service'], '>')) {
+                    \Log::info("DEBUG SHIPPING: Skipped Service (Flat): " . $cost['service']);
+                    continue;
+                }
+                
+                // Format Descriptions
+                $svc = strtoupper($cost['service']);
+                if ($request->courier === 'jne') {
+                    if ($svc === 'OKE') $cost['description'] = 'Ekonomis';
+                    elseif ($svc === 'REG') $cost['description'] = 'Reguler';
+                    elseif ($svc === 'YES') $cost['description'] = 'Yakin Esok Sampai';
+                    elseif ($svc === 'SS' || $svc === 'SUPERSPEED') $cost['description'] = 'Kiriman Super Cepat';
+                    elseif ($svc === 'JTR') $cost['description'] = 'JNE Trucking (Kargo >10kg)';
+                    elseif ($svc === 'CTC') $cost['description'] = 'City Courier (Dalam Kota)';
+                    elseif ($svc === 'CTCYES') $cost['description'] = 'City Courier Kilat (1 Hari)';
+                } elseif ($request->courier === 'jnt') {
+                    if ($svc === 'EZ') $cost['description'] = 'Reguler (2-3 hari)';
+                    elseif (str_contains($svc, 'ECO')) $cost['description'] = 'Ekonomis (7-14 hari)';
+                    elseif (str_contains($svc, 'SUPER')) $cost['description'] = 'Kilat (1-2 hari)';
+                    elseif ($svc === 'DOC') $cost['description'] = 'Dokumen';
+                    elseif (str_contains($svc, 'CARGO')) $cost['description'] = 'Barang Besar';
+                    elseif ($svc === 'HBO' || str_contains($svc, 'HEMAT')) $cost['description'] = 'Paket Hemat';
+                }
+
+                $filteredCosts[] = $cost;
+            }
+            $response['data'] = array_values($filteredCosts);
         }
 
         // CHECK FOR API LIMIT ERROR AND PROVIDE FALLBACK (Standard Courier)
