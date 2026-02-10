@@ -492,48 +492,73 @@ class CheckoutController extends Controller
         }
 
         // Enforce Ninja Express Services (STANDARD & Ninja Cold)
-        if ($request->courier === 'ninja' && isset($response['rajaongkir']['results'][0])) {
-            $costs = $response['rajaongkir']['results'][0]['costs'] ?? [];
-            $newCosts = [];
-            $basePrice = 18000; // Default base price
+        $courier = trim($request->courier ?? '');
+        if ($courier === 'ninja') {
+            
+            // Determine structure and extract existing costs
+            $targetCosts = [];
+            $structureType = 0; // 0: none, 1: rajaongkir.results, 2: data.results
 
-            // 1. STANDARD (Find existing or mock)
-            $standardFound = null;
-            foreach ($costs as $c) {
-                $svc = strtoupper($c['service']);
-                if ($svc === 'STANDARD' || $svc === 'REG') {
-                    $standardFound = $c;
-                    $basePrice = $c['cost'][0]['value'] ?? 18000;
-                    break;
+            if (isset($response['rajaongkir']['results'][0]['costs'])) {
+                $targetCosts = $response['rajaongkir']['results'][0]['costs'];
+                $structureType = 1;
+            } elseif (isset($response['data']['results'][0]['costs'])) {
+                $targetCosts = $response['data']['results'][0]['costs'];
+                $structureType = 2;
+            }
+
+            // Only proceed if we found a valid structure (meaning API returned success)
+            if ($structureType > 0) {
+                $newCosts = [];
+                $basePrice = 18000; 
+
+                // 1. STANDARD (Find existing to preserve real price)
+                $standardFound = null;
+                foreach ($targetCosts as $c) {
+                    $svc = strtoupper($c['service'] ?? '');
+                    if ($svc === 'STANDARD' || $svc === 'REG') {
+                        $standardFound = $c;
+                        $basePrice = $c['cost'][0]['value'] ?? 18000;
+                        break;
+                    }
+                }
+
+                if ($standardFound) {
+                    $standardFound['service'] = 'STANDARD';
+                    $standardFound['description'] = 'Layanan Standar';
+                    // Ensure ETD exists
+                    if (empty($standardFound['cost'][0]['etd'])) {
+                        $standardFound['cost'][0]['etd'] = '2-3';
+                    }
+                    $newCosts[] = $standardFound;
+                } else {
+                     $newCosts[] = [
+                        'service' => 'STANDARD',
+                        'description' => 'Layanan Standar',
+                        'cost' => [['value' => $basePrice, 'etd' => '2-3', 'note' => 'Estimasi']]
+                    ];
+                }
+
+                // 2. Ninja Cold (Custom Injection)
+                $newCosts[] = [
+                    'service' => 'Ninja Cold',
+                    'description' => 'Pengiriman Frozen',
+                    'cost' => [
+                        [
+                            'value' => $basePrice + 10000, 
+                            'etd' => '1-2', 
+                            'note' => 'Layanan Pendingin'
+                        ]
+                    ]
+                ];
+
+                // Write back to the correct location
+                if ($structureType === 1) {
+                    $response['rajaongkir']['results'][0]['costs'] = $newCosts;
+                } elseif ($structureType === 2) {
+                    $response['data']['results'][0]['costs'] = $newCosts;
                 }
             }
-
-            if ($standardFound) {
-                $standardFound['service'] = 'STANDARD';
-                $standardFound['description'] = 'Layanan Standar';
-                $newCosts[] = $standardFound;
-            } else {
-                 $newCosts[] = [
-                    'service' => 'STANDARD',
-                    'description' => 'Layanan Standar',
-                    'cost' => [['value' => $basePrice, 'etd' => '2-3', 'note' => 'Estimasi']]
-                ];
-            }
-
-            // 2. Ninja Cold (Custom Injection)
-            $newCosts[] = [
-                'service' => 'Ninja Cold',
-                'description' => 'Pengiriman Frozen',
-                'cost' => [
-                    [
-                        'value' => $basePrice + 10000, 
-                        'etd' => '1-2', 
-                        'note' => 'Layanan Pendingin'
-                    ]
-                ]
-            ];
-
-            $response['rajaongkir']['results'][0]['costs'] = $newCosts;
         }
 
         return $response;
