@@ -404,6 +404,44 @@ class CheckoutController extends Controller
 
         if ($isError) {
              if (str_contains(strtolower($errorMsg), 'limit')) {
+                // Fallback for Ninja Express specific requirement
+                if ($request->courier === 'ninja') {
+                    return response()->json([
+                        'rajaongkir' => [
+                            'results' => [
+                                [
+                                    'code' => 'ninja',
+                                    'name' => 'NINJA EXPRESS',
+                                    'costs' => [
+                                        [
+                                            'service' => 'STANDARD',
+                                            'description' => 'Layanan Standar',
+                                            'cost' => [
+                                                [
+                                                    'value' => 18000, 
+                                                    'etd' => '2-3',
+                                                    'note' => 'Estimasi'
+                                                ]
+                                            ]
+                                        ],
+                                        [
+                                            'service' => 'Ninja Cold',
+                                            'description' => 'Pengiriman Frozen',
+                                            'cost' => [
+                                                [
+                                                    'value' => 28000, 
+                                                    'etd' => '1-2',
+                                                    'note' => 'Layanan Pendingin'
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]);
+                }
+
                 // Fallback for JNE/J&T/etc
                 return response()->json([
                     'rajaongkir' => [
@@ -451,6 +489,51 @@ class CheckoutController extends Controller
                     ]
                 ]);
              }
+        }
+
+        // Enforce Ninja Express Services (STANDARD & Ninja Cold)
+        if ($request->courier === 'ninja' && isset($response['rajaongkir']['results'][0])) {
+            $costs = $response['rajaongkir']['results'][0]['costs'] ?? [];
+            $newCosts = [];
+            $basePrice = 18000; // Default base price
+
+            // 1. STANDARD (Find existing or mock)
+            $standardFound = null;
+            foreach ($costs as $c) {
+                $svc = strtoupper($c['service']);
+                if ($svc === 'STANDARD' || $svc === 'REG') {
+                    $standardFound = $c;
+                    $basePrice = $c['cost'][0]['value'] ?? 18000;
+                    break;
+                }
+            }
+
+            if ($standardFound) {
+                $standardFound['service'] = 'STANDARD';
+                $standardFound['description'] = 'Layanan Standar';
+                $newCosts[] = $standardFound;
+            } else {
+                 $newCosts[] = [
+                    'service' => 'STANDARD',
+                    'description' => 'Layanan Standar',
+                    'cost' => [['value' => $basePrice, 'etd' => '2-3', 'note' => 'Estimasi']]
+                ];
+            }
+
+            // 2. Ninja Cold (Custom Injection)
+            $newCosts[] = [
+                'service' => 'Ninja Cold',
+                'description' => 'Pengiriman Frozen',
+                'cost' => [
+                    [
+                        'value' => $basePrice + 10000, 
+                        'etd' => '1-2', 
+                        'note' => 'Layanan Pendingin'
+                    ]
+                ]
+            ];
+
+            $response['rajaongkir']['results'][0]['costs'] = $newCosts;
         }
 
         return $response;
