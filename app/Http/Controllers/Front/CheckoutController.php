@@ -255,6 +255,8 @@ class CheckoutController extends Controller
             ->items
             ->sum(fn($item) => $item->product->weight * $item->quantity);
 
+        \Log::info("Checkout Shipping Cost - Total Weight: {$weight} grams");
+
         // Pastikan berat minimal 1 gram (API requirement)
         if ($weight <= 0) {
             $weight = 1000; // Default 1kg jika berat 0
@@ -778,7 +780,7 @@ class CheckoutController extends Controller
                             'name' => 'Lalamove',
                             'costs' => [
                                 [
-                                    'service' => 'Lalamove (Motor)',
+                                    'service' => 'Lalamove (Instan)',
                                     'description' => 'Pengiriman Instan',
                                     'cost' => [
                                         [
