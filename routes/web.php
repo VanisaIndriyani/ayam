@@ -82,6 +82,7 @@ Route::middleware(['auth', 'role:user'])->group(function () {
     Route::prefix('checkout')->name('checkout.')->group(function () {
         Route::get('/', [CheckoutController::class, 'index'])->name('index');
         Route::get('/search-location', [CheckoutController::class, 'searchLocation'])->name('searchLocation');
+        Route::get('/search-map-location', [CheckoutController::class, 'searchMapLocation'])->name('searchMapLocation');
         Route::post('/shipping-cost', [CheckoutController::class, 'shippingCost'])->name('shippingCost');
         // Change to match to handle potential redirect issues (GET fallback)
         Route::match(['get', 'post'], '/process', [CheckoutController::class, 'process'])->name('process');

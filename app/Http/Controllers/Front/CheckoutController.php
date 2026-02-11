@@ -802,6 +802,61 @@ class CheckoutController extends Controller
         return !empty($frozenCosts) ? [$frozenCosts[0]] : [];
     }
 
+    public function searchMapLocation(Request $request)
+    {
+        $query = $request->query('q');
+
+        if (!$query || strlen($query) < 3) {
+            return response()->json(['error' => 'Query terlalu pendek'], 400);
+        }
+
+        // Caching Key
+        $cacheKey = 'geo_map_search_' . md5(strtolower(trim($query)));
+        
+        if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            return response()->json(\Illuminate\Support\Facades\Cache::get($cacheKey));
+        }
+
+        try {
+            $response = Http::timeout(10)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (compatible; Bohrifarm/1.0; +https://bohrifarm.com)',
+                    'Referer' => 'https://bohrifarm.com'
+                ])
+                ->get('https://nominatim.openstreetmap.org/search', [
+                    'q' => $query,
+                    'format' => 'json',
+                    'limit' => 5,
+                    'countrycodes' => 'id' // Batasi Indonesia
+                ]);
+            
+            if ($response->ok()) {
+                $results = $response->json();
+                
+                // Format results for frontend
+                $formatted = array_map(function($item) {
+                    return [
+                        'display_name' => $item['display_name'],
+                        'lat' => $item['lat'],
+                        'lon' => $item['lon'],
+                        'type' => $item['type'] ?? 'unknown'
+                    ];
+                }, $results);
+
+                // Cache results
+                \Illuminate\Support\Facades\Cache::put($cacheKey, $formatted, 60 * 24); // 24 hours
+
+                return response()->json($formatted);
+            }
+
+            return response()->json([]);
+
+        } catch (\Exception $e) {
+            \Log::error("Map Search Error: " . $e->getMessage());
+            return response()->json(['error' => 'Gagal mencari lokasi'], 500);
+        }
+    }
+
     private function getCoordinates($destinationName)
     {
         if (!$destinationName) return null;

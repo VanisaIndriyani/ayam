@@ -195,6 +195,16 @@
                     <!-- MAP SECTION -->
                     <div class="col-12">
                         <label class="form-label">Titik Lokasi Pengiriman (Wajib untuk Kurir Toko / Lalamove)</label>
+                        
+                        <!-- Search Map Input -->
+                        <div class="input-group mb-2">
+                             <input type="text" id="map_search_input" class="form-control" placeholder="Cari nama jalan / gedung / toko (misal: Toko Bangunan Budi)...">
+                             <button class="btn btn-danger" type="button" id="btn_search_map">
+                                <i class="bi bi-search"></i> Cari Lokasi
+                             </button>
+                        </div>
+                        <div id="map_search_status" class="small text-success fw-bold mb-2" style="display: none;"></div>
+
                         <div id="map" class="rounded-3 border" style="height: 300px; z-index: 1;"></div>
                         <div class="form-text text-muted"><i class="bi bi-geo-alt"></i> Geser pin merah ke lokasi tepat rumah Anda untuk akurasi ongkir.</div>
                         <input type="hidden" name="latitude" id="latitude">
@@ -430,6 +440,62 @@ k                             <option value="ninja">Ninja Express</option>
             updateShippingCost();
         }
     }
+
+    // Map Search Handler
+    document.getElementById('btn_search_map').addEventListener('click', function() {
+        const query = document.getElementById('map_search_input').value;
+        const btn = this;
+        const statusDiv = document.getElementById('map_search_status');
+        
+        if (!query || query.length < 3) {
+            alert('Masukkan kata kunci pencarian minimal 3 karakter');
+            return;
+        }
+
+        // UI Loading
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Mencari...';
+        btn.disabled = true;
+        statusDiv.style.display = 'none';
+
+        fetch('{{ route("checkout.searchMapLocation") }}?q=' + encodeURIComponent(query))
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    // Ambil hasil pertama (paling relevan)
+                    const result = data[0];
+                    const lat = parseFloat(result.lat);
+                    const lon = parseFloat(result.lon);
+
+                    if (map && marker) {
+                        map.setView([lat, lon], 17); // Zoom lebih dekat
+                        marker.setLatLng([lat, lon]);
+                        updateCoordinates(lat, lon);
+                        
+                        statusDiv.innerHTML = '<i class="bi bi-check-circle"></i> Lokasi ditemukan: ' + result.display_name;
+                        statusDiv.style.display = 'block';
+                    }
+                } else {
+                    alert('Lokasi tidak ditemukan. Coba kata kunci lain atau gunakan nama jalan utama.');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Gagal mencari lokasi. Silakan coba lagi.');
+            })
+            .finally(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+    });
+    
+    // Allow Enter key in search input
+    document.getElementById('map_search_input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // Prevent form submit
+            document.getElementById('btn_search_map').click();
+        }
+    });
 
     // Initialize Map on Load
     document.addEventListener('DOMContentLoaded', function() {
